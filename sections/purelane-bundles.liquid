@@ -1,0 +1,203 @@
+<section
+  id="bundles"
+  class="pl-section pl-bundles"
+  data-pl-scene="3"
+  aria-labelledby="PlBundlesHeading-{{ section.id }}"
+>
+  <div class="pl-wrap">
+    <header class="pl-bundles__heading pl-glass pl-reveal">
+      {%- if section.settings.kicker != blank -%}
+        <p class="pl-kicker">{{ section.settings.kicker | escape }}</p>
+      {%- endif -%}
+      <h2 id="PlBundlesHeading-{{ section.id }}" class="pl-heading pl-heading--section">
+        {{ section.settings.heading | escape }}
+      </h2>
+      {%- if section.settings.copy != blank -%}
+        <div class="pl-bundles__copy rte">{{ section.settings.copy }}</div>
+      {%- endif -%}
+    </header>
+
+    <div class="pl-tier-grid">
+      {%- for block in section.blocks -%}
+        {%- liquid
+          assign bundle = block.settings.product
+          assign variant = bundle.selected_or_first_available_variant
+          assign components = bundle.metafields.custom.bundle_components.value
+          assign product_count = components.count | default: 0
+          if product_count == 0
+            assign product_count = block.settings.fallback_count
+          endif
+
+          assign savings = 0
+          if variant.compare_at_price > variant.price
+            assign savings = variant.compare_at_price | minus: variant.price
+          endif
+        -%}
+
+        <article
+          class="pl-tier-card pl-glass pl-reveal{% if block.settings.featured %} pl-tier-card--featured{% endif %}"
+          data-pl-rail-card
+          {{ block.shopify_attributes }}
+        >
+          {%- if block.settings.label != blank -%}
+            <span class="pl-tier-card__tag">{{ block.settings.label | escape }}</span>
+          {%- endif -%}
+
+          <div class="pl-tier-card__media pl-tier-card__media--{{ product_count | at_most: 5 }}">
+            {%- if components != blank -%}
+              {%- for component in components limit: 5 -%}
+                {% render 'purelane-product-media',
+                  product: component,
+                  sizes: '(min-width: 990px) 9vw, 27vw',
+                  decorative: true
+                %}
+              {%- endfor -%}
+            {%- elsif bundle != blank -%}
+              {% render 'purelane-product-media',
+                product: bundle,
+                sizes: '(min-width: 990px) 20vw, 64vw',
+                decorative: true
+              %}
+            {%- else -%}
+              {%- for placeholder in (1..product_count) limit: 5 -%}
+                {% render 'purelane-product-media', decorative: true %}
+              {%- endfor -%}
+            {%- endif -%}
+          </div>
+
+          <div class="pl-tier-card__body">
+            <h3>
+              {%- if bundle != blank -%}
+                <a href="{{ bundle.url }}">{{ bundle.title | escape }}</a>
+              {%- else -%}
+                {{ product_count }}-product bundle
+              {%- endif -%}
+            </h3>
+
+            {%- if block.settings.subtitle != blank -%}
+              <p class="pl-tier-card__subtitle">{{ block.settings.subtitle | escape }}</p>
+            {%- endif -%}
+
+            {%- if bundle != blank -%}
+              <div class="pl-price pl-price--tier">
+                <strong>{{ variant.price | money }}</strong>
+                {%- if variant.compare_at_price > variant.price -%}
+                  <s>{{ variant.compare_at_price | money }}</s>
+                  <span>Save {{ savings | money }}</span>
+                {%- endif -%}
+              </div>
+            {%- else -%}
+              <div class="pl-price pl-price--tier"><strong>{{ product_count | times: 20000 | money }}</strong></div>
+            {%- endif -%}
+
+            <ul class="pl-tier-card__benefits" role="list">
+              {%- for benefit_index in (1..3) -%}
+                {%- assign benefit_key = 'benefit_' | append: benefit_index -%}
+                {%- assign benefit = block.settings[benefit_key] -%}
+                {%- if benefit != blank -%}
+                  <li>
+                    <span aria-hidden="true">✓</span>
+                    {{ benefit | replace: '[count]', product_count | escape }}
+                  </li>
+                {%- endif -%}
+              {%- endfor -%}
+            </ul>
+
+            {%- if bundle != blank -%}
+              <a
+                class="pl-button {% if block.settings.featured %}pl-button--primary{% else %}pl-button--secondary{% endif %} pl-button--full"
+                href="{{ bundle.url }}"
+              >
+                {%- if bundle.available -%}{{ block.settings.button_label | escape }}{%- else -%}View sold-out bundle{%- endif -%}
+                <span aria-hidden="true">→</span>
+              </a>
+            {%- else -%}
+              <button class="pl-button pl-button--secondary pl-button--full" type="button" disabled>
+                {{ block.settings.button_label | escape }}
+              </button>
+            {%- endif -%}
+          </div>
+        </article>
+      {%- else -%}
+        <article class="pl-tier-card pl-glass">
+          <div class="pl-tier-card__body">
+            <h3>Add bundle tiers</h3>
+            <p>Choose your fixed bundle products in the theme editor.</p>
+          </div>
+        </article>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Purelane bundle tiers",
+  "tag": "section",
+  "class": "purelane-bundles-section",
+  "limit": 1,
+  "enabled_on": {
+    "templates": ["index"]
+  },
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "Choose your set" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Bundles for every home" },
+    {
+      "type": "richtext",
+      "id": "copy",
+      "label": "Intro",
+      "default": "<p>Simple fixed bundles with real Shopify pricing, checkout and inventory.</p>"
+    }
+  ],
+  "max_blocks": 3,
+  "blocks": [
+    {
+      "type": "tier",
+      "name": "Bundle tier",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Fixed bundle product" },
+        { "type": "text", "id": "label", "label": "Tag", "default": "Starter" },
+        { "type": "checkbox", "id": "featured", "label": "Feature this tier", "default": false },
+        {
+          "type": "range",
+          "id": "fallback_count",
+          "label": "Product count before a bundle is selected",
+          "min": 2,
+          "max": 5,
+          "step": 1,
+          "default": 2
+        },
+        { "type": "text", "id": "subtitle", "label": "Subtitle", "default": "An easy place to start" },
+        { "type": "text", "id": "benefit_1", "label": "Benefit 1", "default": "[count] products in one fixed set" },
+        { "type": "text", "id": "benefit_2", "label": "Benefit 2", "default": "Real-time bundle availability" },
+        { "type": "text", "id": "benefit_3", "label": "Benefit 3", "default": "Free shipping across India" },
+        { "type": "text", "id": "button_label", "label": "Button label", "default": "Choose this bundle" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Purelane bundle tiers",
+      "blocks": [
+        {
+          "type": "tier",
+          "settings": { "label": "Starter", "fallback_count": 2, "subtitle": "A focused clean for one room" }
+        },
+        {
+          "type": "tier",
+          "settings": {
+            "label": "Most popular",
+            "featured": true,
+            "fallback_count": 3,
+            "subtitle": "Everyday essentials together"
+          }
+        },
+        {
+          "type": "tier",
+          "settings": { "label": "Whole home", "fallback_count": 5, "subtitle": "The complete cleaning cupboard" }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
