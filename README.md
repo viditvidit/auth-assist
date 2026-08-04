@@ -1,99 +1,152 @@
-# Dawn
+# Purelane Shopify homepage
 
-[![Build status](https://github.com/shopify/dawn/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Shopify/dawn/actions/workflows/ci.yml?query=branch%3Amain)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?color=informational)](/.github/CONTRIBUTING.md)
+A Dawn 15.4.1 customization that recreates the five requested areas from `purelane-homepage.html` as native Shopify Online Store 2.0 sections:
 
-[Getting started](#getting-started) |
-[Staying up to date with Dawn changes](#staying-up-to-date-with-dawn-changes) |
-[Developer tools](#developer-tools) |
-[Contributing](#contributing) |
-[Code of conduct](#code-of-conduct) |
-[Theme Store submission](#theme-store-submission) |
-[License](#license)
+1. Hero
+2. Reviews rail
+3. Best-selling combos
+4. Fixed bundle tiers
+5. Product grid
 
-Dawn represents a HTML-first, JavaScript-only-as-needed approach to theme development. It's Shopify's first source available theme with performance, flexibility, and [Online Store 2.0 features](https://www.shopify.com/partners/blog/shopify-online-store) built-in and acts as a reference for building Shopify themes.
+The untouched Dawn import is preserved in Git commit `f699afe`. The supplied HTML was treated as a visual and copy reference, not shipped as storefront code.
 
-* **Web-native in its purest form:** Themes run on the [evergreen web](https://www.w3.org/2001/tag/doc/evergreen-web/). We leverage the latest web browsers to their fullest, while maintaining support for the older ones through progressive enhancement—not polyfills.
-* **Lean, fast, and reliable:** Functionality and design defaults to “no” until it meets this requirement. Code ships on quality. Themes must be built with purpose. They shouldn’t support each and every feature in Shopify.
-* **Server-rendered:** HTML must be rendered by Shopify servers using Liquid. Business logic and platform primitives such as translations and money formatting don’t belong on the client. Async and on-demand rendering of parts of the page is OK, but we do it sparingly as a progressive enhancement.
-* **Functional, not pixel-perfect:** The Web doesn’t require each page to be rendered pixel-perfect by each browser engine. Using semantic markup, progressive enhancement, and clever design, we ensure that themes remain functional regardless of the browser.
+## Architecture
 
-You can find a more detailed version of our theme code principles in the [contribution guide](https://github.com/Shopify/dawn/blob/main/.github/CONTRIBUTING.md#theme-code-principles).
+The implementation is server-rendered Liquid with progressively enhanced JavaScript:
 
-## Getting started
-We recommend using Dawn as a starting point for theme development. [Learn more on Shopify.dev](https://shopify.dev/themes/getting-started/create).
+- `sections/purelane-*.liquid` contains the five merchant-editable homepage sections.
+- `snippets/purelane-product-card.liquid` renders live price, availability, ratings and quick add.
+- `snippets/purelane-product-media.liquid` handles responsive product media and the missing-image state.
+- `assets/purelane.css` contains the scoped Purelane visual system and responsive rules.
+- `assets/purelane.js` controls the hero carousel, reveal behavior and theme-editor lifecycle.
+- `templates/index.json` installs the five sections in their intended order.
+- `layout/theme.liquid` loads the Purelane assets only on the homepage.
 
-> If you're building a theme for the Shopify Theme Store, then you can use Dawn as a starting point. However, the theme that you submit needs to be [substantively different from Dawn](https://shopify.dev/themes/store/requirements#uniqueness) so that it provides added value for merchants. Learn about the [ways that you can use Dawn](https://shopify.dev/themes/tools/dawn#ways-to-use-dawn).
+No React, backend, database, custom app or client-side product data is used. Dawn continues to own the cart, product forms, product pages, header and footer.
 
-Please note that the main branch may include code for features not yet released. The "stable" version of Dawn is available in the theme store.
+## Connect a development store
 
-## Staying up to date with Dawn changes
+The Shopify account, store records, and storefront password cannot live safely in this repository. Complete these steps while signed into the assignment's Shopify Partner account:
 
-Say you're building a new theme off Dawn but you still want to be able to pull in the latest changes, you can add a remote `upstream` pointing to this Dawn repository.
+1. Create an empty development store, select India, and set store currency to INR.
+2. Install the free **Shopify Bundles** app.
+3. Install the current Shopify CLI if it is not already available.
+4. From this directory, authenticate and preview the local theme:
 
-1. Navigate to your local theme folder.
-2. Verify the list of remotes and validate that you have both an `origin` and `upstream`:
-```sh
-git remote -v
-```
-3. If you don't see an `upstream`, you can add one that points to Shopify's Dawn repository:
-```sh
-git remote add upstream https://github.com/Shopify/dawn.git
-```
-4. Pull in the latest Dawn changes into your repository:
-```sh
-git fetch upstream
-git pull upstream main
-```
+   ```sh
+   shopify theme dev --store your-store.myshopify.com
+   ```
 
-## Developer tools
+5. Upload it as an unpublished theme once the content is configured:
 
-There are a number of really useful tools that the Shopify Themes team uses during development. Dawn is already set up to work with these tools.
+   ```sh
+   shopify theme push --unpublished --store your-store.myshopify.com
+   ```
 
-### Shopify CLI
+Do not commit Shopify credentials, the storefront password, or CLI authentication files.
 
-[Shopify CLI](https://github.com/Shopify/shopify-cli) helps you build Shopify themes faster and is used to automate and enhance your local development workflow. It comes bundled with a suite of commands for developing Shopify themes—everything from working with themes on a Shopify store (e.g. creating, publishing, deleting themes) or launching a development server for local theme development.
+## Required store data
 
-You can follow this [quick start guide for theme developers](https://shopify.dev/docs/themes/tools/cli) to get started.
+Create a `Homecare` collection with at least these eight regular products. The names may be adjusted, but preserve all three edge cases.
 
-### Theme Check
+| Product | Suggested edge state |
+| --- | --- |
+| Foaming Kitchen Cleaner | Give this an intentionally long marketing title |
+| Organic Dishwash Gel | Normal |
+| Tap Cleaner & Limescale Remover | Normal |
+| Non-toxic Laundry Detergent | Normal |
+| Natural Herbal Floor Cleaner | Normal |
+| Non-toxic Toilet Cleaner | Set all inventory to zero and disable overselling |
+| Gentle Hydrating Liquid Handwash | Normal |
+| Washing Machine Cleaner | Leave product media empty |
 
-We recommend using [Theme Check](https://github.com/shopify/theme-check) as a way to validate and lint your Shopify themes.
+For the seven products with media, upload the matching imagery from the supplied prototype as Shopify product media. Do not add those images to theme assets: product imagery must remain merchant-managed and flow through Shopify's image CDN.
 
-We've added Theme Check to Dawn's [list of VS Code extensions](/.vscode/extensions.json) so if you're using Visual Studio Code as your code editor of choice, you'll be prompted to install the [Theme Check VS Code](https://marketplace.visualstudio.com/items?itemName=Shopify.theme-check-vscode) extension upon opening VS Code after you've forked and cloned Dawn.
+Create these five **fixed bundle products** with Shopify Bundles:
 
-You can also run it from a terminal with the following Shopify CLI command:
+| Bundle product | Components |
+| --- | --- |
+| Kitchen Essentials | Kitchen Cleaner, Dishwash Gel, Tap Cleaner |
+| Laundry Care Bundle | Laundry Detergent, Fabric Conditioner or Handwash, Washing Machine Cleaner |
+| Complete Home Bundle | Kitchen Cleaner, Laundry Detergent, Floor Cleaner, Toilet Cleaner, Handwash |
+| Bathroom Deep Clean | Toilet Cleaner, Tap Cleaner, Handwash or another bathroom product |
+| Hard Water Solution Kit | Tap Cleaner, Toilet Cleaner |
 
-```bash
-shopify theme check
-```
+Set each bundle's price, compare-at price, inventory behavior, description and featured image in Shopify. The theme never hardcodes a selected product's price or stock.
 
-### Continuous Integration
+## Metafield definitions
 
-Dawn uses [GitHub Actions](https://github.com/features/actions) to maintain the quality of the theme. [This is a starting point](https://github.com/Shopify/dawn/blob/main/.github/workflows/ci.yml) and what we suggest to use in order to ensure you're building better themes. Feel free to build off of it!
+Create these definitions in **Settings → Custom data → Products**:
 
-#### Shopify/lighthouse-ci-action
+| Namespace and key | Type | Used on | Purpose |
+| --- | --- | --- | --- |
+| `custom.card_badge` | Single line text | Regular products | Optional product-card badge |
+| `custom.card_benefit` | Single line text | Regular products | Short benefit beneath component imagery |
+| `custom.bundle_components` | Product reference, list of products | Fixed bundle products | Components displayed in hero, combo and tier cards |
+| `reviews.rating` | Rating, scale 1–5 | Regular products | Product-card rating |
+| `reviews.rating_count` | Integer | Regular products | Product-card review count |
 
-We love fast websites! Which is why we created [Shopify/lighthouse-ci-action](https://github.com/Shopify/lighthouse-ci-action). This runs a series of [Google Lighthouse](https://developers.google.com/web/tools/lighthouse) audits for the home, product and collections pages on a store to ensure code that gets added doesn't degrade storefront performance over time.
+The Shopify Bundles app remains the source of bundle inventory and checkout composition. `custom.bundle_components` is a display-only list and should mirror the app's actual components.
 
-#### Shopify/theme-check-action
+## Theme editor setup
 
-Dawn runs [Theme Check](#Theme-Check) on every commit via [Shopify/theme-check-action](https://github.com/Shopify/theme-check-action).
+In **Online Store → Themes → Customize → Home page**:
 
-## Contributing
+1. **Purelane hero:** select one regular product and the two- and three-product fixed bundles for its three offer blocks.
+2. **Purelane reviews:** edit, add, remove or reorder testimonial blocks; optionally attach each review to a product.
+3. **Purelane combos:** assign all five fixed bundle products and mark the Complete Home Bundle as featured.
+4. **Purelane bundle tiers:** assign the two-, three-, and five-product bundles.
+5. **Purelane product grid:** select the `Homecare` collection and show eight products.
 
-Want to make commerce better for everyone by contributing to Dawn? We'd love your help! Please read our [contributing guide](https://github.com/Shopify/dawn/blob/main/.github/CONTRIBUTING.md) to learn about our development process, how to propose bug fixes and improvements, and how to build for Dawn.
+Marketing copy, labels, benefits, review text, buttons and carousel timing are editor settings. Titles, images, prices, compare-at prices, availability and product URLs come from Shopify.
 
-## Code of conduct
+## QA checklist
 
-All developers who wish to contribute through code or issues, please first read our [Code of Conduct](https://github.com/Shopify/dawn/blob/main/.github/CODE_OF_CONDUCT.md).
+Run these checks on the development-store preview before submission:
 
-## Theme Store submission
+- View at 375px, 768px, 1024px and 1440px widths.
+- Confirm regular single-variant products add to cart and the cart updates.
+- Confirm multi-variant products open their product page instead of adding an arbitrary variant.
+- Confirm every fixed-bundle CTA opens the correct Shopify product page.
+- Confirm the sold-out product cannot be quick-added.
+- Confirm the missing-image product shows an accessible placeholder.
+- Confirm the long title wraps without overflowing its card.
+- Add, remove, edit and reorder blocks in all five sections.
+- Select a hero offer block and confirm its slide becomes visible in the editor.
+- Navigate links, tabs, carousel dots and product actions using only a keyboard.
+- Enable reduced motion and confirm autoplay, marquee motion and reveals stop.
+- Run `shopify theme check` from this directory.
+- Run mobile Lighthouse against the password-accessible preview URL.
+- Test the final URL and password in a logged-out/private browser window.
 
-The [Shopify Theme Store](https://themes.shopify.com/) is the place where Shopify merchants find the themes that they'll use to showcase and support their business. As a theme partner, you can create themes for the Shopify Theme Store and reach an international audience of an ever-growing number of entrepreneurs.
+### Local validation completed
 
-Ensure that you follow the list of [theme store requirements](https://shopify.dev/themes/store/requirements) if you're interested in becoming a [Shopify Theme Partner](https://themes.shopify.com/services/themes/guidelines) and building themes for the Shopify platform.
+- Homepage and English locale JSON parse successfully.
+- All five embedded section schemas parse successfully.
+- `node --check assets/purelane.js` passes.
+- `git diff --check` passes.
+- Shopify CLI Theme Check exits successfully with no offenses in Purelane code. It reports nine warnings from pre-existing Dawn code paths; these do not fail the check.
 
-## License
+Store-dependent cart, theme-editor, viewport and Lighthouse checks remain open until this theme is connected to the authenticated development store.
 
-Copyright (c) 2021-present Shopify Inc. See [LICENSE](/LICENSE.md) for further details.
+## Intentional omissions
+
+- Bundle products are fixed Shopify Bundles products. There is no misleading “pick any 2/3/5” builder.
+- The prototype's header, ticker, ingredients, explainer, newsletter, footer, sticky CTA and category sections are not part of the five-section assignment.
+- Mouse parallax and elaborate water animation were omitted in favor of responsive behavior, accessibility and lower script cost.
+- Store creation, app installation, Admin data entry, preview authentication and publishing require the store owner's authenticated session and are therefore handoff steps, not repository automation.
+
+## AI workflow note
+
+AI assistance was used to audit the supplied prototype, separate visual reference data from Shopify-owned data, scaffold the Liquid/CSS/JavaScript, and enumerate edge-case QA. The resulting theme still requires human verification in Shopify's theme editor, checkout flow, device breakpoints and logged-out storefront before submission. No test result or completed Admin action is claimed without actually running it.
+
+## Submission checklist
+
+- Development-store URL and storefront password
+- GitHub repository with the untouched Dawn baseline and implementation commits
+- The five metafield definitions above
+- Store products, collection and five fixed bundles
+- Completed QA checklist and any known limitations
+- Short AI workflow disclosure
+
+Shopify's original Dawn license remains in `LICENSE.md`. The self-hosted Inter and Outfit font files are distributed under the SIL Open Font License by their respective authors.
