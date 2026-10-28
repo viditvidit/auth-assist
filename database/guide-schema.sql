@@ -8,9 +8,7 @@ create table oauth_guides.guides (
   content jsonb not null check (jsonb_typeof(content) = 'object'),
   fingerprint text not null unique,
   is_example boolean not null default false,
-  created_at timestamptz not null default now(),
-  constraint guides_complete_examples_only check (not is_example or content->>'status' is not distinct from 'complete')
+  created_at timestamptz not null default now()
 );
 alter table oauth_guides.guides enable row level security;
 revoke all on oauth_guides.guides from public, anon, authenticated;
--- No public RLS policies: reads and inserts go through the server connection.
