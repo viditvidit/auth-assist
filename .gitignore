@@ -8,3 +8,12 @@
 ehthumbs.db
 Thumbs.db
 .shopify
+
+# Next.js
+node_modules/
+.next/
+out/
+.env*
+!.env.example
+*.tsbuildinfo
+next-env.d.ts
