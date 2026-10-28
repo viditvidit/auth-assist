@@ -13,3 +13,9 @@ export function createResearchModel() {
 
   return new ChatGoogle({ apiKey, model, platformType: 'gai', maxRetries: 1 });
 }
+
+export function getSearchApiKey() {
+  const apiKey = process.env.PERPLEXITY_API_KEY?.trim();
+  if (!apiKey) throw new Error('Research search is not configured. Set PERPLEXITY_API_KEY on the server.');
+  return apiKey;
+}

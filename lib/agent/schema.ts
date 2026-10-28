@@ -72,3 +72,13 @@ export type Audience = ResearchInput['audience'];
 export type Claim = z.infer<typeof claimSchema>;
 export type Source = z.infer<typeof sourceSchema>;
 export type Guide = z.infer<typeof guideSchema>;
+
+export const findingsSchema = z.object({
+  status: z.enum(['researched', 'partial', 'clarification_required']),
+  provider: z.string().nullable(),
+  clarification: z.string().nullable(),
+  findings: z.array(z.object({ text: z.string(), sourceIds: z.array(z.string()) })).max(20),
+  unknowns: z.array(z.string()).max(20),
+});
+
+export type ResearchResult = z.infer<typeof findingsSchema> & { sources: Source[] };
