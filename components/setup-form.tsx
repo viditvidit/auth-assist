@@ -1,86 +1,75 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
-import { ArrowRightIcon } from 'lucide-react';
+import { ArrowUpRightIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { audiences, type Audience } from '@/lib/example';
+import { audiences, type Audience, type Scenario } from '@/lib/workspace-types';
 
-export function SetupForm() {
-  const router = useRouter();
-  const [app, setApp] = useState('');
-  const [useCase, setUseCase] = useState('');
-  const [audience, setAudience] = useState<Audience>('My team');
-
+export function SetupForm({
+  onSubmit,
+  initial,
+  disabled = false,
+}: {
+  onSubmit: (scenario: Scenario) => void;
+  initial?: Scenario;
+  disabled?: boolean;
+}) {
+  const [app, setApp] = useState(initial?.app ?? '');
+  const [useCase, setUseCase] = useState(initial?.useCase ?? '');
+  const [audience, setAudience] = useState<Audience>(initial?.audience ?? 'Not specified');
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!app.trim()) return;
-    const query = new URLSearchParams({ app: app.trim(), useCase: useCase.trim(), audience });
-    router.push(`/workspace?${query}`);
+    if (app.trim() && !disabled) onSubmit({ app: app.trim(), useCase: useCase.trim(), audience });
   }
-
   return (
-    <form onSubmit={submit} className="mt-10">
-      <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor="app">App name or website</FieldLabel>
-          <Input
-            id="app"
-            name="app"
-            placeholder="e.g. Slack or slack.com"
-            required
-            maxLength={200}
-            value={app}
-            onChange={(event) => setApp(event.target.value)}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="use-case">What should your agent do?</FieldLabel>
-          <Textarea
-            id="use-case"
-            name="useCase"
-            placeholder="e.g. Read project tasks and share updates"
-            rows={3}
-            maxLength={2000}
-            value={useCase}
-            onChange={(event) => setUseCase(event.target.value)}
-          />
-          <FieldDescription>Optional. A little context helps shape the guide.</FieldDescription>
-        </Field>
-        <FieldSet>
-          <FieldLegend variant="label" id="audience-label">
-            Who will connect?
-          </FieldLegend>
-          <ToggleGroup
-            aria-labelledby="audience-label"
-            variant="outline"
-            value={[audience]}
-            onValueChange={(values) => {
-              if (values.length) setAudience(values[0] as Audience);
-            }}
-            className="flex-wrap"
-          >
-            {audiences.map((option) => (
-              <ToggleGroupItem key={option} value={option}>
-                {option}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </FieldSet>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Button type="submit" size="lg" disabled={!app.trim()}>
-            Open workspace <ArrowRightIcon data-icon="inline-end" />
-          </Button>
-          <Button variant="ghost" size="lg" nativeButton={false} render={<Link href="/workspace?example=true" />}>
-            View example
-          </Button>
-        </div>
-      </FieldGroup>
+    <form
+      onSubmit={submit}
+      className="grid shrink-0 items-end gap-4 border-b bg-background px-5 py-5 sm:grid-cols-[minmax(160px,0.8fr)_minmax(200px,1.5fr)_auto] lg:grid-cols-[minmax(180px,0.8fr)_minmax(240px,1.6fr)_180px_auto] sm:px-8"
+    >
+      <Field>
+        <FieldLabel htmlFor="app">App name or link</FieldLabel>
+        <Input
+          id="app"
+          placeholder="Gmail or github.com"
+          required
+          maxLength={200}
+          value={app}
+          onChange={(e) => setApp(e.target.value)}
+          disabled={disabled}
+        />
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="use-case">What do you want to build?</FieldLabel>
+        <Input
+          id="use-case"
+          placeholder="Read emails and summarize new requests"
+          maxLength={2000}
+          value={useCase}
+          onChange={(e) => setUseCase(e.target.value)}
+          disabled={disabled}
+        />
+      </Field>
+      <Field className="sm:col-start-1 lg:col-auto">
+        <FieldLabel htmlFor="audience">
+          Who connects? <span className="font-normal text-muted-foreground">Optional</span>
+        </FieldLabel>
+        <select
+          id="audience"
+          value={audience}
+          onChange={(e) => setAudience(e.target.value as Audience)}
+          disabled={disabled}
+          className="h-9 w-full rounded-md border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          {audiences.map((item) => (
+            <option key={item}>{item}</option>
+          ))}
+        </select>
+      </Field>
+      <Button type="submit" disabled={!app.trim() || disabled}>
+        Research <ArrowUpRightIcon data-icon="inline-end" />
+      </Button>
     </form>
   );
 }

@@ -5,13 +5,13 @@ import { z } from 'zod';
 import { createResearchModel } from './model';
 import { readPrompt } from './prompts';
 import { researchProvider } from './research';
-import { guideSchema, researchInputSchema, type Guide, type ResearchResult } from './schema';
+import { claimSchema, guideSchema, researchInputSchema, type Guide, type ResearchResult } from './schema';
 import { applyEvidenceReview, evidenceReviewSchema, guideDraftSchema, reviewClaims } from './guide-evidence';
 
 type Review = z.infer<typeof evidenceReviewSchema>;
 class GuideOutputError extends Error {}
 export type GuideResult =
-  | { status: 'complete' | 'partial'; guide: Guide; review: Review; research: ResearchResult }
+  | { status: 'complete' | 'partial'; guide: Guide; response: string; review: Review; research: ResearchResult }
   | { status: 'clarification_required'; clarification: string; research: ResearchResult }
   | { status: 'error'; error: string; research: ResearchResult | null };
 
@@ -74,10 +74,19 @@ export async function generateGuide(
     }
 
     stage = 'guide generation';
-    const draft = await structured(guideDraftSchema, [
-      { role: 'system', content: readPrompt('generate-guide') },
-      { role: 'user', content: JSON.stringify({ scenario, research }) },
-    ]);
+    const draft = await structured(
+      guideDraftSchema.extend({
+        response: claimSchema
+          .extend({ text: z.string().trim().min(1).max(4000) })
+          .describe(
+            'Concise answer to the latest user question, or initial summary and next action, with evidence references.',
+          ),
+      }),
+      [
+        { role: 'system', content: readPrompt('generate-guide') },
+        { role: 'user', content: JSON.stringify({ scenario, research, conversation: options.conversation ?? [] }) },
+      ],
+    );
     const guide = guideSchema.parse({
       ...draft,
       scenario,
@@ -90,7 +99,7 @@ export async function generateGuide(
         role: 'user',
         content: JSON.stringify({
           scenario,
-          claims: reviewClaims(guide),
+          claims: [...reviewClaims(guide), { id: 'assistantResponse', ...draft.response }],
           approvals: guide.approvals,
           effortEstimate: guide.effortEstimate,
           approvalWait: guide.approvalWait,
@@ -101,10 +110,23 @@ export async function generateGuide(
       },
     ]);
     const checked = applyEvidenceReview(guide, review);
+    const responseChecks = review.checks.filter((check) => check.claimId === 'assistantResponse');
+    const validResponse =
+      responseChecks.length === 1 &&
+      responseChecks[0].verdict === 'supported' &&
+      draft.response.sourceIds.every((id) => research!.sources.some((source) => source.id === id)) &&
+      (draft.response.evidenceStatus !== 'documented' || draft.response.sourceIds.length > 0);
+    if (!validResponse)
+      checked.guide.unknowns.push(
+        'The response to the latest question could not be verified against collected evidence.',
+      );
     signal.throwIfAborted();
     return {
-      status: checked.partial ? 'partial' : 'complete',
+      status: checked.partial || !validResponse ? 'partial' : 'complete',
       guide: checked.guide,
+      response: validResponse
+        ? `${draft.response.evidenceStatus === 'uncertain' ? 'Uncertain: ' : draft.response.evidenceStatus === 'estimated' ? 'Estimate: ' : ''}${draft.response.text}${draft.response.sourceIds.length ? `\nSources: ${draft.response.sourceIds.join(', ')}` : ''}`
+        : 'I could not verify an answer to your latest question. The guide retains the findings that could be reviewed, along with remaining gaps.',
       review,
       research,
     };

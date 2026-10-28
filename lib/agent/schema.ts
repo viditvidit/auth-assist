@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-export const audiences = ['My team', 'Pilot users', 'External customers'] as const;
+export const audiences = ['Not specified', 'My team', 'Pilot users', 'External customers'] as const;
 
 export const researchInputSchema = z.object({
   app: z.string().trim().min(1).max(200),
   useCase: z.string().trim().max(2000).default(''),
-  audience: z.enum(audiences),
+  audience: z.enum(audiences).default('Not specified'),
 });
 
 const text = z.string().trim().min(1);

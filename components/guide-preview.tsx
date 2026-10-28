@@ -1,114 +1,53 @@
 'use client';
 
-import { FileTextIcon } from 'lucide-react';
+import { useState } from 'react';
+import { FileTextIcon, CodeIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field';
-import { example, type Scenario } from '@/lib/example';
+import { LiveGuide } from '@/components/live-guide';
+import { guideMarkdown } from '@/lib/guide-markdown';
+import type { Guide } from '@/lib/agent/schema';
 
-type Props = {
-  scenario: Scenario;
-  isExample: boolean;
-  completed: string[];
-  onToggle: (step: string, checked: boolean) => void;
-};
-
-export function GuidePreview({ scenario, isExample, completed, onToggle }: Props) {
+export function GuidePreview({ result }: { result?: { guide: Guide; status: 'complete' | 'partial' } | null }) {
+  const [raw, setRaw] = useState(false);
   return (
-    <section
-      aria-label="Guide preview"
-      className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-muted/20"
-    >
-      <div className="flex items-center justify-between px-6 py-5">
-        <h2 className="text-sm font-medium">Guide preview</h2>
-        <Badge variant="outline">{isExample ? 'Example' : 'Not generated'}</Badge>
+    <section aria-label="Guide preview" className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b px-6 py-4 sm:px-8">
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-medium">Guide</h2>
+          {result && <Badge variant="outline">{result.status === 'complete' ? 'Complete' : 'Partial'}</Badge>}
+        </div>
+        {result && (
+          <Button variant="ghost" size="sm" onClick={() => setRaw(!raw)} aria-pressed={raw}>
+            <CodeIcon data-icon="inline-start" />
+            {raw ? 'View guide' : 'View Markdown'}
+          </Button>
+        )}
       </div>
-      {!isExample ? (
+      {result ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {raw ? (
+            <textarea
+              aria-label="Raw guide Markdown"
+              readOnly
+              value={guideMarkdown(result.guide)}
+              className="h-full min-h-96 w-full resize-none bg-background p-8 font-mono text-xs leading-6 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            />
+          ) : (
+            <LiveGuide guide={result.guide} />
+          )}
+        </div>
+      ) : (
         <Empty className="my-auto">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <FileTextIcon />
             </EmptyMedia>
-            <EmptyTitle>Your guide will appear here.</EmptyTitle>
-            <EmptyDescription>
-              Setup steps, approval requirements, and sources will be collected here once research is connected.
-            </EmptyDescription>
+            <EmptyTitle>Your integration guide</EmptyTitle>
+            <EmptyDescription>Setup steps, permissions, and approval requirements will appear here.</EmptyDescription>
           </EmptyHeader>
         </Empty>
-      ) : (
-        <article className="mx-4 mb-6 rounded-xl border bg-background p-5 sm:mx-6 sm:p-7">
-          <h3 className="text-xl font-semibold tracking-tight wrap-anywhere">{scenario.app}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{scenario.useCase}</p>
-          <p className="mt-3 text-xs text-muted-foreground">Audience: {scenario.audience}</p>
-          <Accordion defaultValue={['overview', 'steps']} multiple className="mt-7">
-            <AccordionItem value="overview">
-              <AccordionTrigger>Overview</AccordionTrigger>
-              <AccordionContent>
-                <p>
-                  This is a placeholder guide showing how research will be organized. It contains no verified provider
-                  requirements.
-                </p>
-                <dl className="grid grid-cols-2 gap-4 py-2">
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Hands-on effort</dt>
-                    <dd className="mt-1">Not assessed</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Approval wait</dt>
-                    <dd className="mt-1">Not verified</dd>
-                  </div>
-                </dl>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="steps">
-              <AccordionTrigger>Setup steps</AccordionTrigger>
-              <AccordionContent>
-                <FieldSet>
-                  <FieldLegend className="sr-only">Example setup checklist</FieldLegend>
-                  <FieldGroup>
-                    {example.steps.map((step, index) => (
-                      <Field key={step} orientation="horizontal">
-                        <Checkbox
-                          id={`step-${index}`}
-                          checked={completed.includes(step)}
-                          onCheckedChange={(checked) => onToggle(step, checked === true)}
-                        />
-                        <FieldLabel htmlFor={`step-${index}`}>{step}</FieldLabel>
-                      </Field>
-                    ))}
-                  </FieldGroup>
-                </FieldSet>
-                <p className="mt-4 text-xs text-muted-foreground">Sample checklist · Changes reset on refresh.</p>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="approval">
-              <AccordionTrigger>Approval requirements</AccordionTrigger>
-              <AccordionContent>
-                <p>
-                  Provider-specific review triggers, prerequisites, and human handoffs will appear here. None have been
-                  verified in this example.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="blockers">
-              <AccordionTrigger>Blockers</AccordionTrigger>
-              <AccordionContent>
-                <p>
-                  Research is not connected. Potential blockers and the actions needed to resolve them have not been
-                  assessed.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="sources">
-              <AccordionTrigger>Sources</AccordionTrigger>
-              <AccordionContent>
-                <p>No sources have been retrieved. This example does not include citations.</p>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </article>
       )}
     </section>
   );

@@ -17,8 +17,10 @@ export function createResearchTools(
   apiKey: string,
   signal: AbortSignal,
   onActivity?: (event: ResearchActivity) => void,
+  previousSources: Source[] = [],
 ) {
-  const sources: Source[] = [];
+  const sources: Source[] = [...previousSources];
+  let nextSourceId = Math.max(0, ...sources.map((source) => Number(source.id.replace('source_', '')) || 0));
   const gaps: string[] = [];
   let searches = 0;
   let pages = 0;
@@ -26,7 +28,7 @@ export function createResearchTools(
   function saveSource(source: Omit<Source, 'id' | 'retrievedAt'>) {
     const existing = sources.find((item) => item.url === source.url && item.contentType === source.contentType);
     if (existing) return existing;
-    const saved = { ...source, id: `source_${sources.length + 1}`, retrievedAt: new Date().toISOString() };
+    const saved = { ...source, id: `source_${++nextSourceId}`, retrievedAt: new Date().toISOString() };
     sources.push(saved);
     return saved;
   }

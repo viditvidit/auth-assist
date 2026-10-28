@@ -1,14 +1,12 @@
 'use client';
 
-import Link from 'next/link';
-import { useState, useSyncExternalStore } from 'react';
-import { ArrowLeftIcon, BookOpenIcon } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ConversationPanel } from '@/components/conversation-panel';
 import { GuidePreview } from '@/components/guide-preview';
-import { example, type ChatMessage, type Scenario } from '@/lib/example';
+import { saveSession, type ResearchSession } from '@/lib/research-session';
+import { useResearch } from '@/lib/use-research';
+import type { ChatMessage } from '@/lib/workspace-types';
 
 function subscribeToDesktop(callback: () => void) {
   const media = window.matchMedia('(min-width: 1024px)');
@@ -16,89 +14,90 @@ function subscribeToDesktop(callback: () => void) {
   return () => media.removeEventListener('change', callback);
 }
 
-export function Workspace({ scenario, isExample }: { scenario: Scenario; isExample: boolean }) {
+export function Workspace({
+  initialSession,
+  onRunningChange,
+}: {
+  initialSession: ResearchSession;
+  onRunningChange: (running: boolean) => void;
+}) {
   const desktop = useSyncExternalStore(
     subscribeToDesktop,
     () => window.matchMedia('(min-width: 1024px)').matches,
     () => false,
   );
-  const [messages, setMessages] = useState<ChatMessage[]>(() =>
-    isExample
-      ? [...example.messages]
-      : [
-          {
-            id: 'context',
-            role: 'user',
-            text: `App: ${scenario.app}\nAudience: ${scenario.audience}${scenario.useCase ? `\nUse case: ${scenario.useCase}` : ''}`,
-          },
-        ],
+  const [messages, setMessages] = useState<ChatMessage[]>(initialSession.messages);
+  const [draft, setDraft] = useState(initialSession.draft);
+  const research = useResearch(
+    initialSession.scenario,
+    (message) => setMessages((current) => [...current, message]),
+    initialSession.research,
   );
-  const [draft, setDraft] = useState('');
-  const [completed, setCompleted] = useState<string[]>([]);
+  const pendingStart = useRef(initialSession.pendingStart);
+  const [storageError, setStorageError] = useState(false);
+  const saved = JSON.stringify({
+    ...initialSession,
+    pendingStart: pendingStart.current,
+    messages,
+    draft,
+    research: research.snapshot,
+  });
+  useEffect(() => {
+    setStorageError(!saveSession({ ...JSON.parse(saved), updatedAt: Date.now() }));
+  }, [saved]);
+  useEffect(() => {
+    onRunningChange(research.running);
+  }, [research.running, onRunningChange]);
+  useEffect(() => {
+    if (!pendingStart.current) return;
+    // Consume once after Strict Mode's effect replay, never restart saved runs on refresh.
+    const timer = setTimeout(() => {
+      pendingStart.current = false;
+      saveSession({ ...initialSession, pendingStart: false });
+      void research.run(messages);
+    }, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   function send() {
-    if (!draft.trim()) return;
-    setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'user', text: draft.trim() }]);
+    if (!draft.trim() || research.running) return;
+    const next: ChatMessage[] = [...messages, { id: crypto.randomUUID(), role: 'user', text: draft.trim() }];
+    setMessages(next);
     setDraft('');
+    void research.run(next);
   }
   const conversation = (
-    <ConversationPanel messages={messages} draft={draft} onDraftChange={setDraft} onSend={send} isExample={isExample} />
+    <ConversationPanel messages={messages} draft={draft} onDraftChange={setDraft} onSend={send} research={research} />
   );
-  const guide = (
-    <GuidePreview
-      scenario={scenario}
-      isExample={isExample}
-      completed={completed}
-      onToggle={(step, checked) =>
-        setCompleted((current) => (checked ? [...current, step] : current.filter((item) => item !== step)))
-      }
-    />
-  );
-
+  const guide = <GuidePreview result={research.result} />;
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
-      <header className="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <BookOpenIcon className="size-4 shrink-0" aria-hidden="true" />
-          <h1 className="truncate text-sm font-semibold" title={scenario.app}>
-            {scenario.app}
-          </h1>
-          <span className="hidden text-sm text-muted-foreground sm:inline">/</span>
-          <span className="hidden text-sm text-muted-foreground sm:inline">{scenario.audience}</span>
-          {isExample && <Badge variant="secondary">Example</Badge>}
+    <main className="flex min-h-0 flex-1 flex-col">
+      {storageError && (
+        <p role="alert" className="px-6 py-2 text-xs text-destructive">
+          Browser storage is full or unavailable. This research will not survive refresh.
+        </p>
+      )}
+      {desktop ? (
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          {conversation}
+          <div className="flex min-h-0 min-w-0 border-l">{guide}</div>
         </div>
-        <Button variant="ghost" nativeButton={false} render={<Link href="/" />}>
-          <ArrowLeftIcon data-icon="inline-start" />
-          New guide
-        </Button>
-      </header>
-      <div className="border-b bg-muted/40 px-4 py-2 text-center text-xs text-muted-foreground sm:px-6">
-        {isExample
-          ? 'Example workspace · Static sample content, not provider guidance.'
-          : 'Research is not connected. Messages stay in this page and reset on refresh.'}
-      </div>
-      <main className="flex min-h-0 flex-1 flex-col">
-        {desktop ? (
-          <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(360px,0.85fr)]">
-            {conversation}
-            <div className="flex min-h-0 min-w-0 border-l">{guide}</div>
+      ) : (
+        <Tabs defaultValue="chat" className="min-h-0 flex-1 gap-0">
+          <div className="border-b px-4 py-2">
+            <TabsList aria-label="Workspace view" className="w-full">
+              <TabsTrigger value="chat">Chat</TabsTrigger>
+              <TabsTrigger value="guide">Guide</TabsTrigger>
+            </TabsList>
           </div>
-        ) : (
-          <Tabs defaultValue="chat" className="min-h-0 flex-1 gap-0">
-            <div className="border-b px-4 py-2">
-              <TabsList aria-label="Workspace view" className="w-full">
-                <TabsTrigger value="chat">Chat</TabsTrigger>
-                <TabsTrigger value="guide">Guide</TabsTrigger>
-              </TabsList>
-            </div>
-            <TabsContent value="chat" keepMounted className="min-h-0 overflow-hidden data-[hidden]:hidden">
-              {conversation}
-            </TabsContent>
-            <TabsContent value="guide" keepMounted className="min-h-0 overflow-hidden data-[hidden]:hidden">
-              {guide}
-            </TabsContent>
-          </Tabs>
-        )}
-      </main>
-    </div>
+          <TabsContent value="chat" keepMounted className="min-h-0 overflow-hidden data-[hidden]:hidden">
+            {conversation}
+          </TabsContent>
+          <TabsContent value="guide" keepMounted className="min-h-0 overflow-hidden data-[hidden]:hidden">
+            {guide}
+          </TabsContent>
+        </Tabs>
+      )}
+    </main>
   );
 }

@@ -6,12 +6,16 @@ import { findingsSchema, researchInputSchema, type ResearchResult } from './sche
 import { readPrompt } from './prompts';
 import { createResearchTools, type ResearchActivity } from './research-tools';
 
+import type { Conversation } from './protocol';
+
 export type { ResearchResult } from './schema';
 
 export async function researchProvider(
   input: unknown,
   options: {
     signal?: AbortSignal;
+    conversation?: Conversation;
+    previousResearch?: ResearchResult;
     onActivity?: (event: ResearchActivity) => void;
   } = {},
 ): Promise<ResearchResult> {
@@ -22,11 +26,27 @@ export async function researchProvider(
   const startedAt = Date.now();
   const timer = setTimeout(() => controller.abort(), 90_000);
   const signal = options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal;
-  const { readPage, tools, sources, gaps, remaining } = createResearchTools(apiKey, signal, options.onActivity);
+  const { readPage, tools, sources, gaps, remaining } = createResearchTools(
+    apiKey,
+    signal,
+    options.onActivity,
+    options.previousResearch?.sources,
+  );
   try {
     const agent = createAgent({ model, tools, systemPrompt: readPrompt('research'), responseFormat: findingsSchema });
     const result = await agent.invoke(
-      { messages: [{ role: 'user', content: JSON.stringify(scenario) }] },
+      {
+        messages: [
+          {
+            role: 'user',
+            content: JSON.stringify({
+              scenario,
+              conversation: options.conversation ?? [],
+              previousResearch: options.previousResearch ?? null,
+            }),
+          },
+        ],
+      },
       { signal, recursionLimit: 24 },
     );
     let summary = findingsSchema.parse(result.structuredResponse);
