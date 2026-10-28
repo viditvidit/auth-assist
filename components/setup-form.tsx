@@ -5,6 +5,7 @@ import { ArrowUpRightIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { audiences, type Audience, type Scenario } from '@/lib/workspace-types';
 
 export function SetupForm({
@@ -55,17 +56,27 @@ export function SetupForm({
         <FieldLabel htmlFor="audience">
           Who connects? <span className="font-normal text-muted-foreground">Optional</span>
         </FieldLabel>
-        <select
-          id="audience"
+        <Select
           value={audience}
-          onChange={(e) => setAudience(e.target.value as Audience)}
+          onValueChange={(value) => {
+            if (value) setAudience(value as Audience);
+          }}
           disabled={disabled}
-          className="h-9 w-full rounded-md border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring"
+          items={audiences.map((item) => ({ value: item, label: item }))}
         >
-          {audiences.map((item) => (
-            <option key={item}>{item}</option>
-          ))}
-        </select>
+          <SelectTrigger id="audience" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {audiences.map((item) => (
+                <SelectItem key={item} value={item}>
+                  {item}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </Field>
       <Button type="submit" disabled={!app.trim() || disabled}>
         Research <ArrowUpRightIcon data-icon="inline-end" />

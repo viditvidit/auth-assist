@@ -1,4 +1,5 @@
 import type { Claim, Guide } from './agent/schema';
+import { displayAppName } from './app-name';
 
 export function guideMarkdown(guide: Guide): string {
   const reference = (id: string) => {
@@ -12,7 +13,7 @@ export function guideMarkdown(guide: Guide): string {
     return `### ${key === 'effortEstimate' ? 'Hands-on effort' : 'Provider approval wait'}\n\n${value.value ?? (value.status === 'not_applicable' ? 'Not applicable' : 'Unknown')}\n\n${value.explanation}\n\n${value.sourceIds.map(reference).join(' · ')}`;
   };
   return [
-    `# ${guide.scenario.app}`,
+    `# ${displayAppName(guide.scenario.app)}`,
     guide.scenario.useCase,
     ...(guide.scenario.audience === 'Not specified' ? [] : [`Audience: ${guide.scenario.audience}`]),
     '## Overview',

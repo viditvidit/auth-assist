@@ -99,7 +99,7 @@ export function Workspace({
         </p>
       )}
       {desktop ? (
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,6fr)_minmax(0,4fr)]">
           {conversation}
           <div className="flex min-h-0 min-w-0 border-l">{guide}</div>
         </div>
@@ -114,7 +114,7 @@ export function Workspace({
           <TabsContent value="chat" keepMounted className="min-h-0 overflow-hidden data-[hidden]:hidden">
             {conversation}
           </TabsContent>
-          <TabsContent value="guide" keepMounted className="min-h-0 overflow-hidden data-[hidden]:hidden">
+          <TabsContent value="guide" keepMounted className="flex min-h-0 overflow-hidden data-[hidden]:hidden border">
             {guide}
           </TabsContent>
         </Tabs>

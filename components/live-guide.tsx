@@ -22,7 +22,7 @@ export function LiveGuide({ guide }: { guide: Guide }) {
   return (
     <SourceContext.Provider value={guide.sources}>
       <article className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-8 text-sm break-words sm:px-10 sm:py-10">
-        <h3 className="text-xl font-semibold">{guide.scenario.app}</h3>
+        <h3 className="text-xl font-semibold capitalize">{guide.scenario.app}</h3>
         <div className="flex flex-col gap-10">
           <section className="guide-section">
             <h3 className="mb-5 text-lg font-semibold tracking-tight">Overview and time</h3>

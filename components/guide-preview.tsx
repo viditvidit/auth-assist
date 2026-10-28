@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FileTextIcon, CodeIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { LiveGuide } from '@/components/live-guide';
 import { ShareGuide } from '@/components/share-guide';
@@ -24,28 +25,39 @@ export function GuidePreview({
   const [raw, setRaw] = useState(false);
   return (
     <section aria-label="Guide preview" className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b px-6 py-4 sm:px-8">
-        <div className="flex items-center gap-3">
+      <div className="mx-4 mt-4 flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-lg border bg-background p-2 shadow-lg">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <h2 className="text-sm font-medium">Guide</h2>
           {versions.length > 0 && (
-            <select
-              aria-label="Guide version"
+            <Select
               value={selectedVersionId}
-              onChange={(event) => onSelectVersion?.(event.target.value)}
-              className="rounded-md border bg-background px-2 py-1 text-xs"
+              onValueChange={(value) => {
+                if (value) onSelectVersion?.(value);
+              }}
+              items={versions.map((version, index) => ({
+                value: version.id,
+                label: `Version ${index + 1}${index === versions.length - 1 ? ' · Latest' : ''}`,
+              }))}
             >
-              {versions.map((version, index) => (
-                <option key={version.id} value={version.id}>
-                  Version {index + 1}
-                  {index === versions.length - 1 ? ' · Latest' : ''}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger size="sm" aria-label="Guide version">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {versions.map((version, index) => (
+                    <SelectItem key={version.id} value={version.id}>
+                      Version {index + 1}
+                      {index === versions.length - 1 ? ' · Latest' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           )}
           {result && <Badge variant="outline">{result.status === 'complete' ? 'Complete' : 'Partial'}</Badge>}
         </div>
         {result && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <ShareGuide key={selectedVersionId} result={result} />
             <Button variant="ghost" size="sm" onClick={() => setRaw(!raw)} aria-pressed={raw}>
               <CodeIcon data-icon="inline-start" />

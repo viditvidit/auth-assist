@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { guideDatabaseConfigured, listExampleGuides } from '@/lib/guide-store';
 import type { GuideListing } from '@/lib/shared-guide';
+import { displayGuideTitle } from '@/lib/app-name';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +22,7 @@ export default async function GuideLibrary() {
       </Link>
       <h1 className="mt-8 text-2xl font-semibold">Guide library</h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        Only complete research guides appear here. Complete means the research passed evidence review, not that provider
-        setup or approval was performed.
+        Research guides that i have personally tested appear here.
       </p>
       {unavailable ? (
         <p role="status" className="mt-8">
@@ -33,7 +33,7 @@ export default async function GuideLibrary() {
           {guides.map((guide) => (
             <li key={guide.id} className="py-5">
               <Link href={`/guides/${guide.id}`} className="font-medium underline underline-offset-4">
-                {guide.title}
+                {displayGuideTitle(guide.title)}
               </Link>
               <p className="mt-2 text-xs text-muted-foreground">Saved {guide.created_at.slice(0, 10)}</p>
             </li>

@@ -3,11 +3,14 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { GuideListing } from '@/lib/shared-guide';
+import { WorkspaceInfo } from '@/components/workspace-info';
 import { PlusIcon } from 'lucide-react';
 import { SetupForm } from '@/components/setup-form';
 import { Workspace } from '@/components/workspace';
 import { GuidePreview } from '@/components/guide-preview';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { displayAppName, displayGuideTitle } from '@/lib/app-name';
 import {
   activeSession,
   createSession,
@@ -52,7 +55,9 @@ export function HomeExperience({
     <div className="flex h-dvh flex-col overflow-hidden">
       <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b px-5 sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
-          <h1 className="truncate text-base font-semibold">{current?.scenario.app || 'New integration'}</h1>
+          <h1 className="truncate text-base font-semibold">
+            {current ? displayAppName(current.scenario.app) : 'New integration'}
+          </h1>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -66,34 +71,42 @@ export function HomeExperience({
             <PlusIcon />
           </Button>
         </div>
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+          <WorkspaceInfo />
           <Link href="/guides" className="mr-2 text-sm underline underline-offset-4">
             Library
           </Link>
           <label htmlFor="guide-history" className="text-xs text-muted-foreground">
             Guides
           </label>
-          <select
-            id="guide-history"
-            aria-label="Open a guide"
-            value={current?.id ?? ''}
-            onFocus={() => setHistory(listSessions())}
-            onChange={(e) => {
-              const session = listSessions().find((s) => s.id === e.target.value);
+          <Select
+            value={current?.id ?? null}
+            onOpenChange={(open) => {
+              if (open) setHistory(listSessions());
+            }}
+            onValueChange={(value) => {
+              const session = listSessions().find((s) => s.id === value);
               if (session) open(session);
             }}
-            className="h-9 max-w-48 rounded-md border bg-background px-3 text-sm sm:max-w-80"
+            items={history.map((session) => ({
+              value: session.id,
+              label: `${displayAppName(session.scenario.app)}${session.scenario.useCase ? ` — ${session.scenario.useCase}` : ''}`,
+            }))}
           >
-            <option value="" disabled>
-              {history.length ? 'Choose a guide' : 'No guides yet'}
-            </option>
-            {history.map((session) => (
-              <option key={session.id} value={session.id}>
-                {session.scenario.app}
-                {session.scenario.useCase ? ` — ${session.scenario.useCase}` : ''}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger id="guide-history" aria-label="Open a guide" className="max-w-48 sm:max-w-80">
+              <SelectValue placeholder={history.length ? 'Choose a guide' : 'No guides yet'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {history.map((session) => (
+                  <SelectItem key={session.id} value={session.id}>
+                    {displayAppName(session.scenario.app)}
+                    {session.scenario.useCase ? ` — ${session.scenario.useCase}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
       </header>
       {ready && (
@@ -125,7 +138,7 @@ export function HomeExperience({
                     {examples.map((guide) => (
                       <li key={guide.id}>
                         <Link href={`/guides/${guide.id}`} className="text-sm underline underline-offset-4">
-                          {guide.title}
+                          {displayGuideTitle(guide.title)}
                         </Link>
                       </li>
                     ))}
