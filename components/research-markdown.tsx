@@ -1,8 +1,8 @@
 'use client';
 
-import { isValidElement, type ReactElement } from 'react';
+import { isValidElement, useMemo, type ReactElement } from 'react';
 import { MermaidDiagram } from '@/components/mermaid-diagram';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   InlineCitation,
@@ -81,6 +81,29 @@ export function ResearchMarkdown({
   sources?: Source[];
   sourceIds?: string[];
 }) {
+  const components = useMemo<Components>(
+    () => ({
+      a: ({ href, children }) => {
+        const source = sources.find((item) => href === `#citation-${item.id}` || href === item.url);
+        if (source) return <Citation source={source} />;
+        return (
+          <a href={href} target="_blank" rel="noopener noreferrer">
+            {children}
+          </a>
+        );
+      },
+      pre: ({ children }) => {
+        const child = children as ReactElement<{ className?: string; children?: string }>;
+        return isValidElement(child) && child.props.className === 'language-mermaid' ? (
+          <MermaidDiagram code={String(child.props.children ?? '').trim()} />
+        ) : (
+          <pre>{children}</pre>
+        );
+      },
+      img: () => null,
+    }),
+    [sources],
+  );
   // Older saved answers may contain an appended citation footer already cited in the body.
   text = text.replace(/\nSources:\s*([^\n]+)$/, (footer, ids: string, offset: number) => {
     const earlier = text.slice(0, offset);
@@ -91,30 +114,7 @@ export function ResearchMarkdown({
   const content = `${text}${extra.length ? `\n\n${extra.join(' ')}` : ''}`;
   return (
     <div className="research-markdown">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, citationPlugin(sources)]}
-        skipHtml
-        components={{
-          a: ({ href, children }) => {
-            const source = sources.find((item) => href === `#citation-${item.id}` || href === item.url);
-            if (source) return <Citation source={source} />;
-            return (
-              <a href={href} target="_blank" rel="noopener noreferrer">
-                {children}
-              </a>
-            );
-          },
-          pre: ({ children }) => {
-            const child = children as ReactElement<{ className?: string; children?: string }>;
-            return isValidElement(child) && child.props.className === 'language-mermaid' ? (
-              <MermaidDiagram code={String(child.props.children ?? '').trim()} />
-            ) : (
-              <pre>{children}</pre>
-            );
-          },
-          img: () => null,
-        }}
-      >
+      <ReactMarkdown remarkPlugins={[remarkGfm, citationPlugin(sources)]} skipHtml components={components}>
         {content}
       </ReactMarkdown>
     </div>

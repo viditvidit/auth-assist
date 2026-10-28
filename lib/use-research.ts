@@ -3,18 +3,29 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage, Scenario } from './workspace-types';
 import type { ResearchEvent } from './agent/protocol';
-import type { ResearchState } from './research-session';
+import type { ResearchState, GuideVersion } from './research-session';
 
 type Activity = Extract<ResearchEvent, { type: 'activity' }>;
 
-export function useResearch(scenario: Scenario, onMessage: (message: ChatMessage) => void, saved?: ResearchState) {
+export function useResearch(
+  scenario: Scenario,
+  onMessage: (message: ChatMessage) => void,
+  saved?: ResearchState,
+  legacyMessageId?: string,
+) {
   const [running, setRunning] = useState(false);
   const [status, setStatus] = useState(
     saved?.running ? 'Interrupted · Send a message to continue' : (saved?.status ?? 'Ready to research'),
   );
   const [error, setError] = useState<string | null>(saved?.error ?? null);
   const [activities, setActivities] = useState<Activity[]>(saved?.activities ?? []);
-  const [result, setResult] = useState<ResearchState['result']>(saved?.result ?? null);
+  const [versions, setVersions] = useState<GuideVersion[]>(
+    () => saved?.versions ?? (saved?.result ? [{ ...saved.result, id: 'legacy', messageId: legacyMessageId }] : []),
+  );
+  const [selectedVersionId, selectVersion] = useState(
+    saved?.selectedVersionId ?? saved?.versions?.at(-1)?.id ?? 'legacy',
+  );
+  const result = versions.find((version) => version.id === selectedVersionId) ?? versions.at(-1) ?? null;
   const context = useRef<string | undefined>(saved?.context);
   const active = useRef<AbortController | null>(null);
   useEffect(() => () => active.current?.abort(), []);
@@ -29,6 +40,7 @@ export function useResearch(scenario: Scenario, onMessage: (message: ChatMessage
     setActivities([]);
     setStatus('Starting research…');
     let terminal = false;
+    let responseId: string | undefined;
     const timeout = setTimeout(() => controller.abort('timeout'), 130_000);
     function receive(event: ResearchEvent) {
       if (controller.signal.aborted) return;
@@ -40,11 +52,20 @@ export function useResearch(scenario: Scenario, onMessage: (message: ChatMessage
           setActivities((items) => [...items, event]);
           break;
         case 'assistant':
-          onMessage({ id: crypto.randomUUID(), role: 'assistant', text: event.text, sources: event.sources });
+          responseId = crypto.randomUUID();
+          onMessage({ id: responseId, role: 'assistant', text: event.text, sources: event.sources });
           break;
         case 'guide':
           context.current = event.context;
-          setResult({ guide: event.guide, status: event.status, partialReasons: event.partialReasons });
+          const version: GuideVersion = {
+            id: crypto.randomUUID(),
+            messageId: responseId,
+            guide: event.guide,
+            status: event.status,
+            partialReasons: event.partialReasons,
+          };
+          setVersions((previous) => [...previous, version]);
+          selectVersion(version.id);
           setStatus(event.status === 'complete' ? 'Guide ready' : 'Partial guide · review remaining gaps');
           terminal = true;
           break;
@@ -121,6 +142,8 @@ export function useResearch(scenario: Scenario, onMessage: (message: ChatMessage
       running,
       activities,
       result,
+      versions,
+      selectedVersionId,
       context: context.current,
     } satisfies ResearchState,
     run,
@@ -129,6 +152,8 @@ export function useResearch(scenario: Scenario, onMessage: (message: ChatMessage
     error,
     activities,
     result,
+    versions,
+    selectVersion,
     stop: () => active.current?.abort(),
   };
 }

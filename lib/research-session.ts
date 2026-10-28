@@ -2,6 +2,14 @@ import { z } from 'zod';
 import { guideSchema, researchInputSchema, sourceSchema } from './agent/schema';
 import type { Scenario } from './workspace-types';
 
+const guideResultSchema = z.object({
+  guide: guideSchema,
+  status: z.enum(['complete', 'partial']),
+  partialReasons: z.array(z.string()).optional(),
+});
+const guideVersionSchema = guideResultSchema.extend({ id: z.string(), messageId: z.string().optional() });
+export type GuideVersion = z.infer<typeof guideVersionSchema>;
+
 const researchStateSchema = z.object({
   status: z.string(),
   error: z.string().nullable(),
@@ -14,7 +22,9 @@ const researchStateSchema = z.object({
       input: z.string(),
     }),
   ),
-  result: z.object({ guide: guideSchema, status: z.enum(['complete', 'partial']), partialReasons: z.array(z.string()).optional() }).nullable(),
+  result: guideResultSchema.nullable(),
+  versions: z.array(guideVersionSchema).optional(),
+  selectedVersionId: z.string().optional(),
   context: z.string().optional(),
 });
 const sessionSchema = z.object({

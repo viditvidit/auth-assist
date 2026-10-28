@@ -27,11 +27,13 @@ export function Workspace({
     () => false,
   );
   const [messages, setMessages] = useState<ChatMessage[]>(initialSession.messages);
+  const [tab, setTab] = useState('chat');
   const [draft, setDraft] = useState(initialSession.draft);
   const research = useResearch(
     initialSession.scenario,
     (message) => setMessages((current) => [...current, message]),
     initialSession.research,
+    initialSession.messages.findLast((message) => message.role === 'assistant')?.id,
   );
   const pendingStart = useRef(initialSession.pendingStart);
   const [storageError, setStorageError] = useState(false);
@@ -66,10 +68,29 @@ export function Workspace({
     setDraft('');
     void research.run(next);
   }
+  function selectGuide(id: string) {
+    research.selectVersion(id);
+    setTab('guide');
+  }
   const conversation = (
-    <ConversationPanel messages={messages} draft={draft} onDraftChange={setDraft} onSend={send} research={research} />
+    <ConversationPanel
+      messages={messages}
+      draft={draft}
+      onDraftChange={setDraft}
+      onSend={send}
+      research={research}
+      onSelectGuide={selectGuide}
+    />
   );
-  const guide = <GuidePreview result={research.result} />;
+  const guide = (
+    <GuidePreview
+      key={research.result?.id}
+      result={research.result}
+      versions={research.versions}
+      selectedVersionId={research.result?.id}
+      onSelectVersion={selectGuide}
+    />
+  );
   return (
     <main className="flex min-h-0 flex-1 flex-col">
       {storageError && (
@@ -83,7 +104,7 @@ export function Workspace({
           <div className="flex min-h-0 min-w-0 border-l">{guide}</div>
         </div>
       ) : (
-        <Tabs defaultValue="chat" className="min-h-0 flex-1 gap-0">
+        <Tabs value={tab} onValueChange={(value) => setTab(String(value))} className="min-h-0 flex-1 gap-0">
           <div className="border-b px-4 py-2">
             <TabsList aria-label="Workspace view" className="w-full">
               <TabsTrigger value="chat">Chat</TabsTrigger>

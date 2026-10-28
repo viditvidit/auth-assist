@@ -24,10 +24,11 @@ type Props = {
   draft: string;
   onDraftChange: (value: string) => void;
   onSend: () => void;
+  onSelectGuide: (id: string) => void;
   research: ReturnType<typeof useResearch>;
 };
 
-export function ConversationPanel({ messages, draft, onDraftChange, onSend, research }: Props) {
+export function ConversationPanel({ messages, draft, onDraftChange, onSend, research, onSelectGuide }: Props) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'nearest' });
@@ -49,6 +50,26 @@ export function ConversationPanel({ messages, draft, onDraftChange, onSend, rese
                     )}
                   </BubbleContent>
                 </Bubble>
+                {research.versions.map(
+                  (version, index) =>
+                    version.messageId === message.id && (
+                      <Button
+                        key={version.id}
+                        type="button"
+                        variant="outline"
+                        className="mt-3 w-full justify-between"
+                        aria-pressed={research.result?.id === version.id}
+                        onClick={() => onSelectGuide(version.id)}
+                      >
+                        <span>
+                          {version.guide.scenario.app} · Guide v{index + 1}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {research.result?.id === version.id ? 'Viewing' : 'View guide'} →
+                        </span>
+                      </Button>
+                    ),
+                )}
               </MessageContent>
             </Message>
           ))}
