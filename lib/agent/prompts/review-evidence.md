@@ -29,3 +29,10 @@ Also return unresolvedUnknowns: the complete set of still-unresolved caveats fro
 research, including optional ones. Omit a question only if collected evidence resolves it or
 establishes that it is inapplicable to this scenario. A supported not_required provider review
 makes its waiting-time question inapplicable; do not retain that as an unknown.
+
+Before adding a blockingUnknown, identify which concrete next action cannot be chosen or followed.
+Do not classify an unpublished review SLA or turnaround as blocking when the application route,
+review owner and submission steps are known. Keep that caveat in unresolvedUnknowns instead.
+Do not conflate marketplace publication review with permission to create or test an integration.
+If the audience is unspecified, documented conditional paths can still make a complete guide;
+only mark the missing audience as blocking when those paths cannot be explained from evidence.

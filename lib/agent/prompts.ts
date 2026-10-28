@@ -6,6 +6,8 @@ import { join } from 'node:path';
 export function readPrompt(
   name:
     | 'research-follow-up'
+    | 'research-official'
+    | 'research-external'
     | 'research'
     | 'search-web'
     | 'read-page'

@@ -24,6 +24,8 @@ export function createResearchTools(
   const gaps: string[] = [];
   let searches = 0;
   let pages = 0;
+  let searchLimit = 4;
+  let pageLimit = 6;
 
   function saveSource(source: Omit<Source, 'id' | 'retrievedAt'>) {
     const existing = sources.find((item) => item.url === source.url && item.contentType === source.contentType);
@@ -56,10 +58,10 @@ export function createResearchTools(
 
   const searchWeb = tool(
     async ({ query, officialDomain }) => {
-      if (searches++ >= 4) {
-        gaps.push('Search limit reached (4 calls).');
-        return { error: 'Search limit reached (4 calls).' };
+      if (searches >= searchLimit) {
+        return { error: 'Search budget for this pass is exhausted. Return findings now.' };
       }
+      searches++;
       return run('searchWeb', query, async () => {
         const data = await searchDocumentation(query, officialDomain, apiKey, signal);
         return {
@@ -104,10 +106,10 @@ export function createResearchTools(
 
   const readPage = tool(
     async ({ url }) => {
-      if (pages++ >= 6) {
-        gaps.push('Page read limit reached (6 calls).');
-        return { error: 'Page read limit reached (6 calls).' };
+      if (pages >= pageLimit) {
+        return { error: 'Page budget for this pass is exhausted. Return findings now.' };
       }
+      pages++;
       return run('readPage', url, async () => {
         const page = await readPublicPage(url, signal);
         const source = saveSource({
@@ -127,10 +129,17 @@ export function createResearchTools(
   );
 
   return {
+    setSignal: (nextSignal: AbortSignal) => {
+      signal = nextSignal;
+    },
+    setLimits: (searches: number, pages: number) => {
+      searchLimit = Math.min(4, searches);
+      pageLimit = Math.min(6, pages);
+    },
     readPage,
     tools: [searchWeb, readPage],
     sources,
     gaps,
-    remaining: () => ({ searches: Math.max(0, 4 - searches), pages: Math.max(0, 6 - pages) }),
+    remaining: () => ({ searches: Math.max(0, searchLimit - searches), pages: Math.max(0, pageLimit - pages) }),
   };
 }

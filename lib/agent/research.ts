@@ -16,6 +16,9 @@ export async function researchProvider(
     signal?: AbortSignal;
     conversation?: Conversation;
     previousResearch?: ResearchResult;
+    sharedTools?: ReturnType<typeof createResearchTools>;
+    recovery?: boolean;
+    onProgress?: (text: string) => void;
     onActivity?: (event: ResearchActivity) => void;
   } = {},
 ): Promise<ResearchResult> {
@@ -24,63 +27,75 @@ export async function researchProvider(
   const apiKey = getSearchApiKey();
   const controller = new AbortController();
   const startedAt = Date.now();
-  const timer = setTimeout(() => controller.abort(), 90_000);
+  const timer = setTimeout(() => controller.abort(), options.sharedTools ? 45_000 : 90_000);
   const signal = options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal;
-  const { readPage, tools, sources, gaps, remaining } = createResearchTools(
-    apiKey,
-    signal,
-    options.onActivity,
-    options.previousResearch?.sources,
-  );
+  const { readPage, tools, sources, gaps, remaining, setLimits, setSignal } =
+    options.sharedTools ?? createResearchTools(apiKey, signal, options.onActivity, options.previousResearch?.sources);
+  setSignal(signal);
+  if (!options.recovery) setLimits(2, 3);
   try {
     const agent = createAgent({ model, tools, systemPrompt: readPrompt('research'), responseFormat: findingsSchema });
-    const result = await agent.invoke(
-      {
-        messages: [
+    const result = options.recovery
+      ? null
+      : await agent.invoke(
           {
-            role: 'user',
-            content: JSON.stringify({
-              scenario,
-              conversation: options.conversation ?? [],
-              previousResearch: options.previousResearch ?? null,
-            }),
+            messages: [
+              {
+                role: 'user',
+                content: JSON.stringify({
+                  scenario,
+                  conversation: options.conversation ?? [],
+                  previousResearch: options.previousResearch ?? null,
+                }),
+              },
+            ],
           },
-        ],
-      },
-      { signal, recursionLimit: 24 },
-    );
-    let summary = findingsSchema.parse(result.structuredResponse);
+          { signal, recursionLimit: 24 },
+        );
+    let summary = findingsSchema.parse(result?.structuredResponse ?? options.previousResearch);
     // Read discovery results even when the model skips readPage; these share the same limits.
-    if (summary.status !== 'clarification_required' && !sources.some((source) => source.contentType === 'page_text')) {
+    if (
+      !options.recovery &&
+      summary.status !== 'clarification_required' &&
+      !sources.some((source) => source.contentType === 'page_text')
+    ) {
       const urls = [...new Set(sources.map((source) => source.url))].slice(0, 2);
       for (const url of urls) {
         if (Date.now() - startedAt >= 65_000 || !remaining().pages) break;
         await readPage.invoke({ url });
       }
     }
-    const needsFollowUp = summary.unknowns.length > 0 || !sources.some((source) => source.contentType === 'page_text');
-    if (
-      summary.status !== 'clarification_required' &&
-      needsFollowUp &&
-      Date.now() - startedAt < 70_000 &&
-      (remaining().searches > 0 || remaining().pages > 0)
-    ) {
-      try {
-        const followUp = await agent.invoke(
-          {
-            messages: [
-              ...result.messages,
-              {
-                role: 'user',
-                content: `${readPrompt('research-follow-up')}\n${JSON.stringify({ scenario, findings: summary, sources, remaining: remaining() })}`,
-              },
-            ],
-          },
-          { signal, recursionLimit: 24 },
+    // A generation run reserves these passes until evidence review identifies the actual gaps.
+    if (!options.sharedTools || options.recovery) {
+      for (const phase of ['official', 'external'] as const) {
+        const unresolved = summary.status === 'partial' || summary.unknowns.length > 0;
+        if (summary.status === 'clarification_required' || !unresolved) break;
+        setLimits(phase === 'official' ? 3 : 4, phase === 'official' ? 5 : 6);
+        if (signal.aborted || (!remaining().searches && !remaining().pages)) {
+          gaps.push('The remaining research budget was exhausted before all documentation gaps could be checked.');
+          break;
+        }
+        options.onProgress?.(
+          phase === 'official'
+            ? 'Some documentation is still unclear. I’m checking official docs for the remaining gaps.'
+            : 'The official-docs pass left open questions. I’m checking external guides and community discussions next.',
         );
-        summary = findingsSchema.parse(followUp.structuredResponse);
-      } catch {
-        gaps.push('Targeted follow-up did not finish; initial findings and collected evidence are retained.');
+        try {
+          const followUp = await agent.invoke(
+            {
+              messages: [
+                {
+                  role: 'user',
+                  content: `${readPrompt(phase === 'official' ? 'research-official' : 'research-external')}\n${JSON.stringify({ scenario, findings: summary, sources, remaining: remaining() })}`,
+                },
+              ],
+            },
+            { signal, recursionLimit: 16 },
+          );
+          summary = findingsSchema.parse(followUp.structuredResponse);
+        } catch {
+          gaps.push(`The ${phase} documentation pass did not finish; collected evidence is retained.`);
+        }
       }
     }
     const knownIds = new Set(sources.map((source) => source.id));
@@ -110,7 +125,7 @@ export async function researchProvider(
         signal.aborted
           ? options.signal?.aborted
             ? 'Research was cancelled. Collected evidence is retained.'
-            : 'The 90-second research deadline was reached. Collected evidence is retained.'
+            : 'The research pass deadline was reached. Collected evidence is retained.'
           : 'Research could not finish. Check model access, provider quotas, network availability, or output compatibility.',
       ],
     };
