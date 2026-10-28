@@ -17,21 +17,45 @@ export const claimSchema = z.object({
   sourceIds,
 });
 
-// Unknown durations are null, never zero or an invented range.
-const durationSchema = z.discriminatedUnion('status', [
-  z.object({
-    status: z.literal('unknown'),
-    value: z.null(),
-    explanation: text,
-    sourceIds,
-  }),
-  z.object({
-    status: z.enum(['estimated', 'documented']),
-    value: text.describe('A duration or range, including units.'),
-    explanation: text.describe('Estimate assumptions or the conditions attached to a published timeline.'),
-    sourceIds,
-  }),
-]);
+// Gemini drops oneOf schemas. Keep the wire shape simple and validate the relationship locally.
+const durationObject = z.object({
+  status: z.enum(['unknown', 'estimated', 'documented']),
+  value: text.nullable().describe('Null when status is unknown; otherwise a duration or range including units.'),
+  explanation: text.describe('Why the duration is unknown, estimate assumptions, or published timeline conditions.'),
+  sourceIds,
+});
+
+const durationSchema = durationObject.superRefine((duration, context) => {
+  if ((duration.status === 'unknown') !== (duration.value === null)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['value'],
+      message: 'Use null only for unknown durations; estimated or documented durations require a value.',
+    });
+  }
+});
+
+const approvalWaitSchema = durationObject
+  .extend({
+    status: z.enum(['unknown', 'estimated', 'documented', 'not_applicable']),
+    value: text.nullable().describe('Null for unknown or not_applicable; otherwise a duration including units.'),
+  })
+  .superRefine((duration, context) => {
+    const needsNull = duration.status === 'unknown' || duration.status === 'not_applicable';
+    if (needsNull !== (duration.value === null))
+      context.addIssue({
+        code: 'custom',
+        path: ['value'],
+        message: 'Unknown or not-applicable waits require null; other waits require a duration.',
+      });
+  });
+
+const approvalSchema = z.object({
+  applicability: z.enum(['required', 'not_required', 'conditional', 'unknown']),
+  explanation: claimSchema.describe(
+    'Scenario-specific conclusion, conditions, and who must act; label secondary evidence as reported experience.',
+  ),
+});
 
 export const sourceSchema = z.object({
   id: text,
@@ -46,7 +70,14 @@ export const guideSchema = z.object({
   scenario: researchInputSchema,
   overview: claimSchema,
   effortEstimate: durationSchema.describe('Hands-on developer effort, separate from provider waiting time.'),
-  approvalWait: durationSchema.describe('Elapsed waiting time for provider approval.'),
+  approvalWait: approvalWaitSchema.describe(
+    'Provider review wait only. Use not_applicable only when providerReview is not_required, with cited justification.',
+  ),
+  approvals: z.object({
+    providerReview: approvalSchema,
+    organizationApproval: approvalSchema,
+    marketplaceListing: approvalSchema,
+  }),
   prerequisites: z.array(claimSchema),
   steps: z.array(
     z.object({

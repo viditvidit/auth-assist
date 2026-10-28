@@ -19,16 +19,50 @@ export async function researchProvider(
   const model = createResearchModel();
   const apiKey = getSearchApiKey();
   const controller = new AbortController();
+  const startedAt = Date.now();
   const timer = setTimeout(() => controller.abort(), 90_000);
   const signal = options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal;
-  const { tools, sources, gaps } = createResearchTools(apiKey, signal, options.onActivity);
+  const { readPage, tools, sources, gaps, remaining } = createResearchTools(apiKey, signal, options.onActivity);
   try {
     const agent = createAgent({ model, tools, systemPrompt: readPrompt('research'), responseFormat: findingsSchema });
     const result = await agent.invoke(
       { messages: [{ role: 'user', content: JSON.stringify(scenario) }] },
       { signal, recursionLimit: 24 },
     );
-    const summary = findingsSchema.parse(result.structuredResponse);
+    let summary = findingsSchema.parse(result.structuredResponse);
+    // Read discovery results even when the model skips readPage; these share the same limits.
+    if (summary.status !== 'clarification_required' && !sources.some((source) => source.contentType === 'page_text')) {
+      const urls = [...new Set(sources.map((source) => source.url))].slice(0, 2);
+      for (const url of urls) {
+        if (Date.now() - startedAt >= 65_000 || !remaining().pages) break;
+        await readPage.invoke({ url });
+      }
+    }
+    const needsFollowUp = summary.unknowns.length > 0 || !sources.some((source) => source.contentType === 'page_text');
+    if (
+      summary.status !== 'clarification_required' &&
+      needsFollowUp &&
+      Date.now() - startedAt < 70_000 &&
+      (remaining().searches > 0 || remaining().pages > 0)
+    ) {
+      try {
+        const followUp = await agent.invoke(
+          {
+            messages: [
+              ...result.messages,
+              {
+                role: 'user',
+                content: `${readPrompt('research-follow-up')}\n${JSON.stringify({ scenario, findings: summary, sources, remaining: remaining() })}`,
+              },
+            ],
+          },
+          { signal, recursionLimit: 24 },
+        );
+        summary = findingsSchema.parse(followUp.structuredResponse);
+      } catch {
+        gaps.push('Targeted follow-up did not finish; initial findings and collected evidence are retained.');
+      }
+    }
     const knownIds = new Set(sources.map((source) => source.id));
     const supported = summary.findings.filter(
       (finding) => finding.sourceIds.length > 0 && finding.sourceIds.every((id) => knownIds.has(id)),

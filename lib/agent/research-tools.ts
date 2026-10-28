@@ -124,5 +124,11 @@ export function createResearchTools(
     },
   );
 
-  return { tools: [searchWeb, readPage], sources, gaps };
+  return {
+    readPage,
+    tools: [searchWeb, readPage],
+    sources,
+    gaps,
+    remaining: () => ({ searches: Math.max(0, 4 - searches), pages: Math.max(0, 6 - pages) }),
+  };
 }
