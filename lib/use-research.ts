@@ -1,5 +1,6 @@
 'use client';
 
+import { loadGuideVersions } from '@/app/guides/actions';
 import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage, Scenario } from './workspace-types';
 import type { ResearchEvent } from './agent/protocol';
@@ -26,12 +27,40 @@ export function useResearch(
     saved?.selectedVersionId ?? saved?.versions?.at(-1)?.id ?? 'legacy',
   );
   const result = versions.find((version) => version.id === selectedVersionId) ?? versions.at(-1) ?? null;
+  const [restoring, setRestoring] = useState(!!saved?.versionRefs?.length);
+  const [restored, setRestored] = useState(!saved?.versionRefs?.length);
+  useEffect(() => {
+    if (!saved?.versionRefs?.length) return;
+    let cancelled = false;
+    void loadGuideVersions(saved.versionRefs.map((ref) => ref.guideId))
+      .then((snapshots) => {
+        if (cancelled) return;
+        const loaded = snapshots.flatMap((snapshot, index) =>
+          snapshot ? [{ ...snapshot, ...saved.versionRefs![index] }] : [],
+        );
+        setVersions((current) => [
+          ...loaded,
+          ...current.filter((version) => !loaded.some((item) => item.id === version.id)),
+        ]);
+        setRestored(true);
+        if (snapshots.some((snapshot) => !snapshot)) setError('Some saved guide versions are unavailable.');
+      })
+      .catch(() => {
+        if (!cancelled) setError('Could not load saved guide versions. Reload to try again.');
+      })
+      .finally(() => {
+        if (!cancelled) setRestoring(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [saved]);
   const context = useRef<string | undefined>(saved?.context);
   const active = useRef<AbortController | null>(null);
   useEffect(() => () => active.current?.abort(), []);
 
   async function run(messages: ChatMessage[]) {
-    if (active.current) return;
+    if (active.current || restoring) return;
     const conversation = messages.slice(-20).map(({ role, text }) => ({ role, text: text.slice(0, 4000) }));
     const controller = new AbortController();
     active.current = controller;
@@ -63,6 +92,7 @@ export function useResearch(
             guide: event.guide,
             status: event.status,
             partialReasons: event.partialReasons,
+            guideId: event.guideId,
           };
           setVersions((previous) => [...previous, version]);
           selectVersion(version.id);
@@ -143,12 +173,13 @@ export function useResearch(
       activities,
       result,
       versions,
+      versionRefs: restored ? [] : saved?.versionRefs,
       selectedVersionId,
       context: context.current,
     } satisfies ResearchState,
     run,
-    running,
-    status,
+    running: running || restoring,
+    status: restoring ? 'Loading guides…' : status,
     error,
     activities,
     result,

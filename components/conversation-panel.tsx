@@ -14,6 +14,7 @@ import {
   TraceLine,
   TraceTitle,
 } from '@/components/ui/trace';
+import { ShareGuide } from '@/components/share-guide';
 import { ResearchMarkdown } from '@/components/research-markdown';
 import { Button } from '@/components/ui/button';
 import type { useResearch } from '@/lib/use-research';
@@ -30,6 +31,7 @@ type Props = {
 
 export function ConversationPanel({ messages, draft, onDraftChange, onSend, research, onSelectGuide }: Props) {
   const end = useRef<HTMLDivElement>(null);
+  const activities = research.activities.filter((activity) => activity.status === 'started');
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'nearest' });
   }, [messages.length]);
@@ -53,27 +55,22 @@ export function ConversationPanel({ messages, draft, onDraftChange, onSend, rese
                 {research.versions.map(
                   (version, index) =>
                     version.messageId === message.id && (
-                      <Button
+                      <ShareGuide
                         key={version.id}
-                        type="button"
-                        variant="outline"
-                        className="mt-3 w-full justify-between"
-                        aria-pressed={research.result?.id === version.id}
-                        onClick={() => onSelectGuide(version.id)}
+                        result={version}
+                        selected={research.result?.id === version.id}
+                        onSelect={() => onSelectGuide(version.id)}
                       >
                         <span>
                           {version.guide.scenario.app} · Guide v{index + 1}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          {research.result?.id === version.id ? 'Viewing' : 'View guide'} →
-                        </span>
-                      </Button>
+                      </ShareGuide>
                     ),
                 )}
               </MessageContent>
             </Message>
           ))}
-          {research.activities.length > 0 && (
+          {activities.length > 0 && (
             <Trace>
               <TraceCollapsible>
                 <TraceCollapsibleTrigger>
@@ -81,15 +78,15 @@ export function ConversationPanel({ messages, draft, onDraftChange, onSend, rese
                     <TraceIcon>
                       <SearchIcon />
                     </TraceIcon>
-                    <TraceTitle>Research activity ({research.activities.length})</TraceTitle>
+                    <TraceTitle>Research activity ({activities.length})</TraceTitle>
                   </TraceLine>
                 </TraceCollapsibleTrigger>
                 <TraceCollapsibleContent>
                   <ol className="flex flex-col gap-3 text-xs">
-                    {research.activities.map((activity, index) => (
+                    {activities.map((activity, index) => (
                       <li key={index} className="break-words">
                         <span className="font-medium">
-                          {activity.tool === 'searchWeb' ? 'Search' : 'Read page'} · {activity.status}
+                          {activity.tool === 'searchWeb' ? 'Searching' : 'Reading'}
                         </span>
                         <p className="mt-1 text-muted-foreground">{activity.input}</p>
                       </li>

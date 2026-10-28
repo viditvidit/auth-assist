@@ -6,6 +6,8 @@ const guideResultSchema = z.object({
   guide: guideSchema,
   status: z.enum(['complete', 'partial']),
   partialReasons: z.array(z.string()).optional(),
+  shareToken: z.string().optional(),
+  guideId: z.string().optional(),
 });
 const guideVersionSchema = guideResultSchema.extend({ id: z.string(), messageId: z.string().optional() });
 export type GuideVersion = z.infer<typeof guideVersionSchema>;
@@ -24,6 +26,7 @@ const researchStateSchema = z.object({
   ),
   result: guideResultSchema.nullable(),
   versions: z.array(guideVersionSchema).optional(),
+  versionRefs: z.array(z.object({ id: z.string(), guideId: z.string(), messageId: z.string().optional() })).optional(),
   selectedVersionId: z.string().optional(),
   context: z.string().optional(),
 });
@@ -66,7 +69,28 @@ export function createSession(scenario: Scenario, pendingStart = true): Research
 }
 export function saveSession(session: ResearchSession) {
   try {
-    sessionStorage.setItem(prefix + session.id, JSON.stringify(session));
+    const research = session.research;
+    const stored = research
+      ? {
+          ...session,
+          research: {
+            ...research,
+            result: research.result?.guideId ? null : research.result,
+            versions: research.versions?.filter((version) => !version.guideId),
+            versionRefs: [
+              ...new Map(
+                [
+                  ...(research.versionRefs ?? []),
+                  ...(research.versions ?? [])
+                    .filter((version) => version.guideId)
+                    .map(({ id, guideId, messageId }) => ({ id, guideId: guideId!, messageId })),
+                ].map((ref) => [ref.id, ref]),
+              ).values(),
+            ],
+          },
+        }
+      : session;
+    sessionStorage.setItem(prefix + session.id, JSON.stringify(stored));
     return true;
   } catch {
     return false;

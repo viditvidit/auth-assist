@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { LiveGuide } from '@/components/live-guide';
+import { ShareGuide } from '@/components/share-guide';
 import { guideMarkdown } from '@/lib/guide-markdown';
 import type { ResearchState, GuideVersion } from '@/lib/research-session';
 
@@ -44,10 +45,13 @@ export function GuidePreview({
           {result && <Badge variant="outline">{result.status === 'complete' ? 'Complete' : 'Partial'}</Badge>}
         </div>
         {result && (
-          <Button variant="ghost" size="sm" onClick={() => setRaw(!raw)} aria-pressed={raw}>
-            <CodeIcon data-icon="inline-start" />
-            {raw ? 'View guide' : 'View Markdown'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <ShareGuide key={selectedVersionId} result={result} />
+            <Button variant="ghost" size="sm" onClick={() => setRaw(!raw)} aria-pressed={raw}>
+              <CodeIcon data-icon="inline-start" />
+              {raw ? 'View guide' : 'View Markdown'}
+            </Button>
+          </div>
         )}
       </div>
       {result ? (

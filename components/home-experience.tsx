@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import type { GuideListing } from '@/lib/shared-guide';
 import { PlusIcon } from 'lucide-react';
 import { SetupForm } from '@/components/setup-form';
 import { Workspace } from '@/components/workspace';
@@ -16,7 +18,15 @@ import {
 } from '@/lib/research-session';
 import type { Scenario } from '@/lib/workspace-types';
 
-export function HomeExperience({ initialScenario }: { initialScenario?: Scenario }) {
+export function HomeExperience({
+  initialScenario,
+  examples = [],
+  libraryError,
+}: {
+  initialScenario?: Scenario;
+  examples?: GuideListing[];
+  libraryError?: string;
+}) {
   const [ready, setReady] = useState(false);
   const [current, setCurrent] = useState<ResearchSession | null>(null);
   const [history, setHistory] = useState<ResearchSession[]>([]);
@@ -57,6 +67,9 @@ export function HomeExperience({ initialScenario }: { initialScenario?: Scenario
           </Button>
         </div>
         <div className="flex min-w-0 items-center gap-2">
+          <Link href="/guides" className="mr-2 text-sm underline underline-offset-4">
+            Library
+          </Link>
           <label htmlFor="guide-history" className="text-xs text-muted-foreground">
             Guides
           </label>
@@ -105,6 +118,28 @@ export function HomeExperience({ initialScenario }: { initialScenario?: Scenario
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
                 Enter an app and your use case above. Research and follow-up questions will appear here.
               </p>
+              {!!examples.length && (
+                <section className="mt-8" aria-label="Example guide library">
+                  <h3 className="text-sm font-semibold">Explore ready-to-read guides</h3>
+                  <ul className="mt-3 space-y-3">
+                    {examples.map((guide) => (
+                      <li key={guide.id}>
+                        <Link href={`/guides/${guide.id}`} className="text-sm underline underline-offset-4">
+                          {guide.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Researched examples with sources and remaining uncertainties.
+                  </p>
+                </section>
+              )}
+              {libraryError && (
+                <p role="status" className="mt-6 text-sm text-muted-foreground">
+                  {libraryError}
+                </p>
+              )}
             </div>
           </div>
           <div className="hidden min-h-0 border-l lg:flex">

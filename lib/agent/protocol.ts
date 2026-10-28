@@ -23,7 +23,14 @@ export type ResearchEvent =
   | { type: 'started' }
   | { type: 'activity'; tool: 'searchWeb' | 'readPage'; status: 'started' | 'completed' | 'failed'; input: string }
   | { type: 'assistant'; text: string; sources: Source[] }
-  | { type: 'guide'; status: 'complete' | 'partial'; guide: Guide; partialReasons?: string[]; context: string }
+  | {
+      type: 'guide';
+      status: 'complete' | 'partial';
+      guide: Guide;
+      partialReasons?: string[];
+      guideId: string;
+      context: string;
+    }
   | { type: 'clarification'; text: string; context: string }
   | { type: 'error'; message: string; context?: string }
   | { type: 'cancelled' };

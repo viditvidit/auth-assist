@@ -3,6 +3,7 @@ import { createResearchModel, getSearchApiKey } from '@/lib/agent/model';
 import { openResearch, sealResearch } from '@/lib/agent/research-context';
 import { researchRequestSchema, type ResearchEvent } from '@/lib/agent/protocol';
 import type { ResearchResult } from '@/lib/agent/schema';
+import { saveGuide, guideDatabaseConfigured } from '@/lib/guide-store';
 
 export const runtime = 'nodejs';
 export const maxDuration = 180;
@@ -43,6 +44,8 @@ export async function POST(request: Request) {
     );
   }
   try {
+    if (!guideDatabaseConfigured())
+      return Response.json({ error: 'Guide storage is not configured.' }, { status: 503 });
     createResearchModel();
     getSearchApiKey();
   } catch {
@@ -102,6 +105,7 @@ export async function POST(request: Request) {
             signal,
             previousResearch,
             conversation: input.conversation,
+            onProgress: (text) => send({ type: 'assistant', text, sources: [] }),
             onActivity: (activity) => send({ type: 'activity', ...activity }),
           });
           if (closed) return;
@@ -110,8 +114,23 @@ export async function POST(request: Request) {
           else if (result.status === 'clarification_required') {
             send({ type: 'clarification', text: result.clarification, context: context! });
           } else {
+            let guideId: string;
+            try {
+              guideId = await saveGuide(result);
+            } catch {
+              send({ type: 'error', message: 'Could not save the generated guide. Please try again.', context });
+              return;
+            }
+            if (closed) return;
             send({ type: 'assistant', text: result.response, sources: result.guide.sources });
-            send({ type: 'guide', status: result.status, guide: result.guide, partialReasons: result.partialReasons, context: context! });
+            send({
+              type: 'guide',
+              status: result.status,
+              guide: result.guide,
+              partialReasons: result.partialReasons,
+              guideId,
+              context: context!,
+            });
           }
         } catch {
           send({ type: 'error', message: 'Research could not finish. Send a message to continue.' });
