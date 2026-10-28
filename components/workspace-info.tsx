@@ -63,7 +63,7 @@ export function WorkspaceInfo() {
                 >
                   <Input tabIndex={-1} readOnly value="Slack" className="w-28 bg-background" />
                   <Input tabIndex={-1} readOnly value="Send channel updates" className="w-44 bg-background" />
-                  <Select value="My team" items={[{ value: 'My team', label: 'My team' }]}>
+                  <Select value="Internal users" items={[{ value: 'Internal users', label: 'Internal users' }]}>
                     <SelectTrigger tabIndex={-1}>
                       <SelectValue />
                     </SelectTrigger>

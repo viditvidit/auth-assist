@@ -36,6 +36,6 @@ Keep structured fields and sourceIds intact; do not add a separate Sources headi
 You may include a short fenced mermaid flowchart or sequenceDiagram when it materially clarifies
 an approval branch or handoff. Diagrams are optional, not decorative. Use plain labels, no HTML,
 click actions, frontmatter, or configuration directives. The diagram must agree with cited claims.
-Do not assume "My team" qualifies for a provider's internal-only app type. For Google, internal
+Do not assume "Internal users" (or the historical "My team" selection) qualifies for a provider's internal-only app type. For Google, internal
 eligibility depends on the actual Workspace/Cloud Identity organization, not team intent alone.
 When audience is Not specified, explain conditional paths or ask if it changes the setup decision.

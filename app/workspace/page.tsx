@@ -10,7 +10,9 @@ export default async function WorkspacePage({
   const query = await searchParams;
   const app = typeof query.app === 'string' ? query.app.trim().slice(0, 200) : '';
   if (!app) redirect('/');
-  const audience = audiences.includes(query.audience as Audience) ? (query.audience as Audience) : 'Not specified';
+  const audience = audiences.some((audience) => audience === query.audience)
+    ? (query.audience as Audience)
+    : 'Not specified';
   return (
     <HomeExperience
       initialScenario={{

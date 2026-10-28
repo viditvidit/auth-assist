@@ -56,7 +56,7 @@ export function HomeExperience({
       <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b px-5 sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <h1 className="truncate text-base font-semibold">
-            {current ? displayAppName(current.scenario.app) : 'New integration'}
+            {current ? displayAppName(current.scenario.app) : 'Auth Assist'}
           </h1>
           <Button
             variant="ghost"

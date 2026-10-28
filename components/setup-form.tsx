@@ -19,7 +19,15 @@ export function SetupForm({
 }) {
   const [app, setApp] = useState(initial?.app ?? '');
   const [useCase, setUseCase] = useState(initial?.useCase ?? '');
-  const [audience, setAudience] = useState<Audience>(initial?.audience ?? 'Not specified');
+  const [audience, setAudience] = useState<Audience>(
+    initial?.audience === 'My team'
+      ? 'Internal users'
+      : initial?.audience === 'External customers'
+        ? 'External users'
+        : initial?.audience === 'Pilot users'
+          ? 'Not specified'
+          : (initial?.audience ?? 'Not specified'),
+  );
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (app.trim() && !disabled) onSubmit({ app: app.trim(), useCase: useCase.trim(), audience });

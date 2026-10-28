@@ -21,17 +21,17 @@ export default async function SharedGuide({ params }: { params: Promise<{ id: st
         <h1 className="mt-6 text-2xl font-semibold">{displayGuideTitle(saved.title)}</h1>
         <CopyGuideLink />
         <p className="mt-3 text-sm text-muted-foreground">
-          Read-only snapshot · {saved.snapshot.status} · Saved {saved.createdAt.slice(0, 10)}
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Audience: {saved.snapshot.guide.scenario.audience}
+          Status: {saved.snapshot.status} · Saved {saved.createdAt.slice(0, 10)}
         </p>
         {!!saved.snapshot.partialReasons.length && (
-          <ul className="mt-4 list-disc pl-5 text-sm">
+          <div className='mt-2'>
+          <h3 className="text-sm">Partial Reasons:</h3>
+          <ul className="mt-1 list-disc pl-5 text-sm">
             {saved.snapshot.partialReasons.map((reason, i) => (
               <li key={i}>{reason}</li>
             ))}
           </ul>
+        </div>
         )}
       </header>
       <LiveGuide guide={saved.snapshot.guide} />
