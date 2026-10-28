@@ -17,9 +17,11 @@ function subscribeToDesktop(callback: () => void) {
 export function Workspace({
   initialSession,
   onRunningChange,
+  apiKeys,
 }: {
   initialSession: ResearchSession;
   onRunningChange: (running: boolean) => void;
+  apiKeys: { gemini: string; perplexity: string };
 }) {
   const desktop = useSyncExternalStore(
     subscribeToDesktop,
@@ -34,6 +36,7 @@ export function Workspace({
     (message) => setMessages((current) => [...current, message]),
     initialSession.research,
     initialSession.messages.findLast((message) => message.role === 'assistant')?.id,
+    apiKeys,
   );
   const pendingStart = useRef(initialSession.pendingStart);
   const [storageError, setStorageError] = useState(false);

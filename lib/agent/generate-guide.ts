@@ -3,7 +3,7 @@ import 'server-only';
 import { AIMessage, type BaseMessageLike } from '@langchain/core/messages';
 import { z } from 'zod';
 import { createResearchTools } from './research-tools';
-import { createResearchModel, getSearchApiKey } from './model';
+import { createResearchModel, geminiError, getSearchApiKey } from './model';
 import { readPrompt } from './prompts';
 import { researchProvider } from './research';
 import { claimSchema, guideSchema, researchInputSchema, type Guide, type ResearchResult } from './schema';
@@ -38,7 +38,7 @@ export async function generateGuide(
   let repairAvailable = true;
   try {
     const sharedTools = createResearchTools(
-      getSearchApiKey(),
+      getSearchApiKey(options.apiKeys?.perplexity),
       signal,
       options.onActivity,
       options.previousResearch?.sources,
@@ -53,8 +53,14 @@ export async function generateGuide(
         research,
       };
     if (!research.sources.length)
-      return { status: 'error', error: 'No usable evidence was collected. A guide cannot be generated.', research };
-    const model = createResearchModel();
+      return {
+        status: 'error',
+        error:
+          research.unknowns.find((item) => item.startsWith('Gemini ')) ??
+          'No usable evidence was collected. A guide cannot be generated.',
+        research,
+      };
+    const model = createResearchModel(options.apiKeys?.gemini);
 
     async function structured<S extends z.ZodObject>(schema: S, messages: BaseMessageLike[]): Promise<z.infer<S>> {
       const runnable = model.withStructuredOutput(schema, { includeRaw: true });
@@ -206,9 +212,10 @@ export async function generateGuide(
           'Some questions remain unresolved after the documentation checks. I’ll mark the guide partial and list the remaining gaps.',
         );
       return updated;
-    } catch {
+    } catch (error) {
       if (signal.aborted) throw new Error('Research cancelled');
       const reason =
+        geminiError(error) ??
         'Additional documentation checks or evidence review could not finish. The last reviewed guide is retained with its remaining gaps.';
       options.onProgress?.(reason);
       return { ...initial, partialReasons: [...initial.partialReasons, reason] };
@@ -225,7 +232,8 @@ export async function generateGuide(
           : 'The 120-second guide generation deadline was reached.'
         : error instanceof GuideOutputError
           ? error.message
-          : `Could not complete ${stage}. Check configuration, provider access, or structured-output compatibility. At most one output repair is attempted.`,
+          : (geminiError(error) ??
+            `Could not complete ${stage}. Check configuration, provider access, or structured-output compatibility. At most one output repair is attempted.`),
       research,
     };
   } finally {

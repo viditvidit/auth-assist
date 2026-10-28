@@ -46,11 +46,15 @@ export async function POST(request: Request) {
   try {
     if (!guideDatabaseConfigured())
       return Response.json({ error: 'Guide storage is not configured.' }, { status: 503 });
-    createResearchModel();
-    getSearchApiKey();
+    if (!process.env.GOOGLE_API_KEY?.trim()) throw new Error('Server signing key missing');
+    createResearchModel(input.apiKeys?.gemini);
+    getSearchApiKey(input.apiKeys?.perplexity);
   } catch {
     return Response.json(
-      { error: 'Research is not configured. Set GOOGLE_API_KEY, GEMINI_MODEL, and PERPLEXITY_API_KEY on the server.' },
+      {
+        error:
+          'Research is not configured. The server needs GOOGLE_API_KEY for signing and GEMINI_MODEL; add API keys in the app or configure them on the server.',
+      },
       { status: 503 },
     );
   }
@@ -103,6 +107,7 @@ export async function POST(request: Request) {
         try {
           const result = await generateGuide(input.scenario, {
             signal,
+            apiKeys: input.apiKeys,
             previousResearch,
             conversation: input.conversation,
             onProgress: (text) => send({ type: 'assistant', text, sources: [] }),

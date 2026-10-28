@@ -13,6 +13,7 @@ export function useResearch(
   onMessage: (message: ChatMessage) => void,
   saved?: ResearchState,
   legacyMessageId?: string,
+  apiKeys?: { gemini: string; perplexity: string },
 ) {
   const [running, setRunning] = useState(false);
   const [status, setStatus] = useState(
@@ -121,7 +122,7 @@ export function useResearch(
       const response = await fetch('/api/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario, conversation, context: context.current }),
+        body: JSON.stringify({ scenario, conversation, context: context.current, apiKeys }),
         signal: controller.signal,
       });
       if (!response.ok) {

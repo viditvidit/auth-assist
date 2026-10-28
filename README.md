@@ -9,6 +9,7 @@ Auth Assist helps developers understand how to set up an OAuth app for an integr
 - **Evidence and uncertainty:** Links claims to collected sources, labels estimates and unknowns, and distinguishes provider review, organization approval, and marketplace listing. Guides are marked complete or partial based on the remaining material gaps.
 - **Follow-up research:** Ask questions or add context to refine a guide. The agent can investigate unresolved gaps and produce another version.
 - **Library and sharing:** Browse example guides, switch between versions, view Markdown, and copy a shareable link. Generated guides are saved in the database.
+- **Your own API keys:** Optionally provide Gemini and Perplexity keys using **API keys**. They stay in page memory until refresh and are sent to the server with research requests. Empty fields use the server configuration.
 
 ## How to use
 
@@ -35,10 +36,12 @@ Requires Node.js 22.9 or newer, npm, Google AI Studio and Perplexity API access,
 
    | Variable | Purpose |
    | --- | --- |
-   | `GOOGLE_API_KEY` | Google AI Studio API key |
+   | `GOOGLE_API_KEY` | Google AI Studio API key; also used to sign research context |
    | `GEMINI_MODEL` | Gemini model ID with tool calling and structured output support |
    | `PERPLEXITY_API_KEY` | Perplexity Search API key |
    | `OAUTH_GUIDES_DATABASE_URL` | Supabase transaction-pooler Postgres connection URL |
+
+   Users can provide their own Gemini and Perplexity keys in the app. The server still needs `GOOGLE_API_KEY` for signing and `GEMINI_MODEL` to select a model. Gemini offers a free tier for eligible models, subject to quota; Perplexity has separate pricing and limits.
 
 3. Apply [database/guide-schema.sql](database/guide-schema.sql) once to a new Supabase project using its SQL editor. The app uses a server-side database connection to save and retrieve guides. The example library can be empty until example guides are added.
 4. Start the app:

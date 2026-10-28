@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createAgent } from 'langchain';
-import { createResearchModel, getSearchApiKey } from './model';
+import { createResearchModel, geminiError, getSearchApiKey } from './model';
 import { findingsSchema, researchInputSchema, type ResearchResult } from './schema';
 import { readPrompt } from './prompts';
 import { createResearchTools, type ResearchActivity } from './research-tools';
@@ -18,13 +18,14 @@ export async function researchProvider(
     previousResearch?: ResearchResult;
     sharedTools?: ReturnType<typeof createResearchTools>;
     recovery?: boolean;
+    apiKeys?: { gemini: string; perplexity: string };
     onProgress?: (text: string) => void;
     onActivity?: (event: ResearchActivity) => void;
   } = {},
 ): Promise<ResearchResult> {
   const scenario = researchInputSchema.parse(input);
-  const model = createResearchModel();
-  const apiKey = getSearchApiKey();
+  const model = createResearchModel(options.apiKeys?.gemini);
+  const apiKey = getSearchApiKey(options.apiKeys?.perplexity);
   const controller = new AbortController();
   const startedAt = Date.now();
   const timer = setTimeout(() => controller.abort(), options.sharedTools ? 45_000 : 90_000);
@@ -93,8 +94,10 @@ export async function researchProvider(
             { signal, recursionLimit: 16 },
           );
           summary = findingsSchema.parse(followUp.structuredResponse);
-        } catch {
-          gaps.push(`The ${phase} documentation pass did not finish; collected evidence is retained.`);
+        } catch (error) {
+          gaps.push(
+            geminiError(error) ?? `The ${phase} documentation pass did not finish; collected evidence is retained.`,
+          );
         }
       }
     }
@@ -113,7 +116,7 @@ export async function researchProvider(
       unknowns: [...new Set([...summary.unknowns, ...gaps])],
       sources,
     };
-  } catch {
+  } catch (error) {
     return {
       status: 'partial',
       provider: null,
@@ -126,7 +129,8 @@ export async function researchProvider(
           ? options.signal?.aborted
             ? 'Research was cancelled. Collected evidence is retained.'
             : 'The research pass deadline was reached. Collected evidence is retained.'
-          : 'Research could not finish. Check model access, provider quotas, network availability, or output compatibility.',
+          : (geminiError(error) ??
+            'Research could not finish. Check model access, provider quotas, network availability, or output compatibility.'),
       ],
     };
   } finally {

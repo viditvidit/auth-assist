@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { GuideListing } from '@/lib/shared-guide';
 import { WorkspaceInfo } from '@/components/workspace-info';
+import { ApiKeysCard, type ApiKeys } from '@/components/api-keys';
 import { PlusIcon } from 'lucide-react';
 import { SetupForm } from '@/components/setup-form';
 import { Workspace } from '@/components/workspace';
@@ -35,6 +36,7 @@ export function HomeExperience({
   const [history, setHistory] = useState<ResearchSession[]>([]);
   const [running, setRunning] = useState(false);
   const [newKey, setNewKey] = useState(0);
+  const [apiKeys, setApiKeys] = useState<ApiKeys>({ gemini: '', perplexity: '' });
   useEffect(() => {
     const sessions = listSessions();
     setCurrent(
@@ -75,6 +77,7 @@ export function HomeExperience({
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <WorkspaceInfo />
+          <ApiKeysCard keys={apiKeys} onChange={setApiKeys} />
           <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/guides" />}>
             Library
           </Button>
@@ -123,7 +126,12 @@ export function HomeExperience({
         />
       )}
       {ready && current ? (
-        <Workspace key={`workspace-${current.id}`} initialSession={current} onRunningChange={setRunning} />
+        <Workspace
+          key={`workspace-${current.id}`}
+          initialSession={current}
+          onRunningChange={setRunning}
+          apiKeys={apiKeys}
+        />
       ) : (
         <main className="grid min-h-0 flex-1 lg:grid-cols-2">
           <div className="flex items-center justify-center px-8 py-12">

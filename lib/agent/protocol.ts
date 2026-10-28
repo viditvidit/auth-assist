@@ -16,6 +16,7 @@ export const researchRequestSchema = z
     scenario: researchInputSchema,
     conversation: conversationSchema.default([]),
     context: z.string().max(900_000).optional(),
+    apiKeys: z.object({ gemini: z.string().trim().max(512), perplexity: z.string().trim().max(512) }).optional(),
   })
   .strict();
 
