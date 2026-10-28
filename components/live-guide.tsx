@@ -7,6 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import type { Claim, Guide } from '@/lib/agent/schema';
 
 const SourceContext = createContext<Guide['sources']>([]);
+const approvalColors = {
+  required: 'border-amber-600/30 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
+  not_required: 'border-emerald-600/30 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
+  conditional: 'border-blue-600/30 bg-blue-50 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200',
+  unknown: 'border-border bg-muted text-muted-foreground',
+} as const;
 
 function ClaimText({ claim }: { claim: Claim }) {
   const sources = useContext(SourceContext);
@@ -30,10 +36,10 @@ export function LiveGuide({ guide }: { guide: Guide }) {
               <ClaimText claim={guide.overview} />
               {(['effortEstimate', 'approvalWait'] as const).map((key) => (
                 <div key={key}>
-                  <h4 className="font-medium">
+                  <h4 className="text-sm font-semibold text-foreground">
                     {key === 'effortEstimate' ? 'Hands-on effort' : 'Provider approval wait'}
                   </h4>
-                  <p>
+                  <p className="mt-1 font-medium text-primary">
                     {guide[key].value ?? (guide[key].status === 'not_applicable' ? 'Not applicable' : 'Unknown')}
                     {guide[key].value && guide[key].status === 'estimated' ? ' · estimated' : ''}
                   </p>
@@ -80,17 +86,21 @@ export function LiveGuide({ guide }: { guide: Guide }) {
             <h3 className="mb-5 text-lg font-semibold tracking-tight">Approvals</h3>
             <div className="flex flex-col gap-5">
               {Object.entries(guide.approvals).map(([key, approval]) => (
-                <div key={key} className="flex flex-col gap-2">
-                  <h4 className="font-medium">
-                    {
+                <div key={key} className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h4 className="text-base font-semibold leading-snug">
                       {
-                        providerReview: 'Provider review',
-                        organizationApproval: 'Organization approval',
-                        marketplaceListing: 'Marketplace listing',
-                      }[key]
-                    }{' '}
-                    · {approval.applicability.replaceAll('_', ' ')}
-                  </h4>
+                        {
+                          providerReview: 'Provider review',
+                          organizationApproval: 'Organization approval',
+                          marketplaceListing: 'Marketplace listing',
+                        }[key]
+                      }
+                    </h4>
+                    <Badge variant="outline" className={approvalColors[approval.applicability]}>
+                      {approval.applicability.replaceAll('_', ' ')}
+                    </Badge>
+                  </div>
                   <ClaimText claim={approval.explanation} />
                 </div>
               ))}
@@ -106,9 +116,9 @@ export function LiveGuide({ guide }: { guide: Guide }) {
                 <p>No unresolved blockers identified in this research.</p>
               )}
               {guide.blockers.map((blocker, i) => (
-                <div key={i} className="flex flex-col gap-2">
+                <div key={i} className="flex flex-col gap-2 py-4">
                   <ClaimText claim={blocker.issue} />
-                  <p className="font-medium">Next action · {blocker.owner}</p>
+                  <h4 className="text-sm font-semibold text-primary">Next action · {blocker.owner}</h4>
                   <ClaimText claim={blocker.nextAction} />
                 </div>
               ))}

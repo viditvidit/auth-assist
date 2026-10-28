@@ -92,7 +92,7 @@ export function HomeExperience({
             }}
             items={history.map((session) => ({
               value: session.id,
-              label: `${displayAppName(session.scenario.app)}${session.scenario.useCase ? ` — ${session.scenario.useCase}` : ''}`,
+              label: displayAppName(session.scenario.app),
             }))}
           >
             <SelectTrigger id="guide-history" aria-label="Open a guide" className="max-w-48 sm:max-w-80">
@@ -103,7 +103,6 @@ export function HomeExperience({
                 {history.map((session) => (
                   <SelectItem key={session.id} value={session.id}>
                     {displayAppName(session.scenario.app)}
-                    {session.scenario.useCase ? ` — ${session.scenario.useCase}` : ''}
                   </SelectItem>
                 ))}
               </SelectGroup>

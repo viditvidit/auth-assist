@@ -99,7 +99,7 @@ export function Workspace({
         </p>
       )}
       {desktop ? (
-        <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,6fr)_minmax(0,4fr)]">
+        <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,55fr)_minmax(0,45fr)]">
           {conversation}
           <div className="flex min-h-0 min-w-0 border-l">{guide}</div>
         </div>

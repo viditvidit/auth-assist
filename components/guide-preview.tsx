@@ -30,10 +30,10 @@ export function GuidePreview({
           {result.status === 'partial' && (
             <aside
               aria-label="Why this guide is partial"
-              className="mx-6 mt-6 rounded-lg border bg-muted/40 p-5 text-sm sm:mx-8"
+              className="mx-6 mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm sm:mx-8"
             >
-              <h3 className="font-medium">Why this guide is partial</h3>
-              <ul className="mt-2 list-disc space-y-2 pl-5 leading-relaxed text-muted-foreground">
+              <h3 className="font-semibold text-amber-700">The guide is partial, understand why</h3>
+              <ul className="mt-2 list-disc space-y-2 pl-5 leading-relaxed text-amber-700">
                 {(result.partialReasons?.length
                   ? result.partialReasons
                   : result.guide.unknowns.length
@@ -43,7 +43,7 @@ export function GuidePreview({
                   <li key={index}>{reason}</li>
                 ))}
               </ul>
-              <p className="mt-3 text-muted-foreground">
+              <p className="mt-2 text-amber-700">
                 Ask a follow-up in chat to clarify these gaps before relying on the affected steps.
               </p>
             </aside>
