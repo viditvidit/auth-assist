@@ -111,7 +111,7 @@ export async function POST(request: Request) {
             send({ type: 'clarification', text: result.clarification, context: context! });
           } else {
             send({ type: 'assistant', text: result.response, sources: result.guide.sources });
-            send({ type: 'guide', status: result.status, guide: result.guide, context: context! });
+            send({ type: 'guide', status: result.status, guide: result.guide, partialReasons: result.partialReasons, context: context! });
           }
         } catch {
           send({ type: 'error', message: 'Research could not finish. Send a message to continue.' });

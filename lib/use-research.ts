@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage, Scenario } from './workspace-types';
 import type { ResearchEvent } from './agent/protocol';
 import type { ResearchState } from './research-session';
-import type { Guide } from './agent/schema';
 
 type Activity = Extract<ResearchEvent, { type: 'activity' }>;
 
@@ -15,7 +14,7 @@ export function useResearch(scenario: Scenario, onMessage: (message: ChatMessage
   );
   const [error, setError] = useState<string | null>(saved?.error ?? null);
   const [activities, setActivities] = useState<Activity[]>(saved?.activities ?? []);
-  const [result, setResult] = useState<{ guide: Guide; status: 'complete' | 'partial' } | null>(saved?.result ?? null);
+  const [result, setResult] = useState<ResearchState['result']>(saved?.result ?? null);
   const context = useRef<string | undefined>(saved?.context);
   const active = useRef<AbortController | null>(null);
   useEffect(() => () => active.current?.abort(), []);
@@ -45,7 +44,7 @@ export function useResearch(scenario: Scenario, onMessage: (message: ChatMessage
           break;
         case 'guide':
           context.current = event.context;
-          setResult({ guide: event.guide, status: event.status });
+          setResult({ guide: event.guide, status: event.status, partialReasons: event.partialReasons });
           setStatus(event.status === 'complete' ? 'Guide ready' : 'Partial guide · review remaining gaps');
           terminal = true;
           break;

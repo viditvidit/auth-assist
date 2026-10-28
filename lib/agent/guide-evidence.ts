@@ -82,11 +82,11 @@ export function applyEvidenceReview(guide: Guide, review: z.infer<typeof evidenc
     return check.verdict === 'supported' ? null : `${check.verdict}: ${check.reason}`;
   }
 
-  let materialFailure = false;
+  const partialReasons = [...review.blockingUnknowns];
   function recordFailure(id: string, reason: string) {
     guide.unknowns.push(`${id}: ${reason}`);
     const checks = review.checks.filter((check) => check.claimId === id);
-    if (checks.length !== 1 || checks[0].material) materialFailure = true;
+    if (checks.length !== 1 || checks[0].material) partialReasons.push(reason);
   }
 
   for (const { id, claim } of claims(guide)) {
@@ -147,13 +147,11 @@ export function applyEvidenceReview(guide: Guide, review: z.infer<typeof evidenc
       sourceIds: [],
     };
     guide.unknowns.push(guide.approvalWait.explanation);
-    materialFailure = true;
+    partialReasons.push(guide.approvalWait.explanation);
   }
   guide.unknowns = [...new Set([...guide.unknowns, ...review.blockingUnknowns])];
-  const partial =
-    materialFailure ||
-    review.blockingUnknowns.length > 0 ||
-    guide.approvals.providerReview.applicability === 'unknown' ||
-    !guide.steps.length;
-  return { guide: guideSchema.parse(guide), partial };
+  if (guide.approvals.providerReview.applicability === 'unknown')
+    partialReasons.push('Whether provider approval is required could not be established.');
+  if (!guide.steps.length) partialReasons.push('No actionable setup steps could be established.');
+  return { guide: guideSchema.parse(guide), partial: partialReasons.length > 0, partialReasons: [...new Set(partialReasons)] };
 }

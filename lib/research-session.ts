@@ -14,7 +14,7 @@ const researchStateSchema = z.object({
       input: z.string(),
     }),
   ),
-  result: z.object({ guide: guideSchema, status: z.enum(['complete', 'partial']) }).nullable(),
+  result: z.object({ guide: guideSchema, status: z.enum(['complete', 'partial']), partialReasons: z.array(z.string()).optional() }).nullable(),
   context: z.string().optional(),
 });
 const sessionSchema = z.object({

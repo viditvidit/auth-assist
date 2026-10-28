@@ -11,7 +11,7 @@ import { applyEvidenceReview, evidenceReviewSchema, guideDraftSchema, reviewClai
 type Review = z.infer<typeof evidenceReviewSchema>;
 class GuideOutputError extends Error {}
 export type GuideResult =
-  | { status: 'complete' | 'partial'; guide: Guide; response: string; review: Review; research: ResearchResult }
+  | { status: 'complete' | 'partial'; guide: Guide; partialReasons: string[]; response: string; review: Review; research: ResearchResult }
   | { status: 'clarification_required'; clarification: string; research: ResearchResult }
   | { status: 'error'; error: string; research: ResearchResult | null };
 
@@ -124,6 +124,7 @@ export async function generateGuide(
     return {
       status: checked.partial || !validResponse ? 'partial' : 'complete',
       guide: checked.guide,
+      partialReasons: [...checked.partialReasons, ...(!validResponse ? ['The response to your latest question could not be verified against collected evidence.'] : [])],
       response: validResponse
         ? `${draft.response.evidenceStatus === 'uncertain' ? 'Uncertain: ' : draft.response.evidenceStatus === 'estimated' ? 'Estimate: ' : ''}${draft.response.text}${draft.response.sourceIds.length ? `\nSources: ${draft.response.sourceIds.join(', ')}` : ''}`
         : 'I could not verify an answer to your latest question. The guide retains the findings that could be reviewed, along with remaining gaps.',

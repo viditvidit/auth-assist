@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { LiveGuide } from '@/components/live-guide';
 import { guideMarkdown } from '@/lib/guide-markdown';
-import type { Guide } from '@/lib/agent/schema';
+import type { ResearchState } from '@/lib/research-session';
 
-export function GuidePreview({ result }: { result?: { guide: Guide; status: 'complete' | 'partial' } | null }) {
+export function GuidePreview({ result }: { result?: ResearchState['result'] }) {
   const [raw, setRaw] = useState(false);
   return (
     <section aria-label="Guide preview" className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
@@ -27,6 +27,17 @@ export function GuidePreview({ result }: { result?: { guide: Guide; status: 'com
       </div>
       {result ? (
         <div className="min-h-0 flex-1 overflow-y-auto">
+          {result.status === 'partial' && (
+            <aside aria-label="Why this guide is partial" className="mx-6 mt-6 rounded-lg border bg-muted/40 p-5 text-sm sm:mx-8">
+              <h3 className="font-medium">Why this guide is partial</h3>
+              <ul className="mt-2 list-disc space-y-2 pl-5 leading-relaxed text-muted-foreground">
+                {(result.partialReasons?.length ? result.partialReasons : result.guide.unknowns.length ? result.guide.unknowns : ['Some setup or approval details could not be verified.']).map((reason, index) => (
+                  <li key={index}>{reason}</li>
+                ))}
+              </ul>
+              <p className="mt-3 text-muted-foreground">Ask a follow-up in chat to clarify these gaps before relying on the affected steps.</p>
+            </aside>
+          )}
           {raw ? (
             <textarea
               aria-label="Raw guide Markdown"
