@@ -144,9 +144,6 @@ export function HomeExperience({
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    Researched examples with sources and remaining uncertainties.
-                  </p>
                 </section>
               )}
               {libraryError && (
