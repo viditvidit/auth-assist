@@ -7,4 +7,4 @@ export const guideSnapshotSchema = z.object({
   partialReasons: z.array(z.string()).default([]),
 });
 export type GuideSnapshot = z.infer<typeof guideSnapshotSchema>;
-export type GuideListing = { id: string; title: string; created_at: string };
+export type GuideListing = { id: string; title: string; created_at: string; status: 'complete' | 'partial' };

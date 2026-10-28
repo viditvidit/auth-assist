@@ -1,8 +1,11 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { XIcon } from 'lucide-react';
+import { ArrowUpRightIcon, CodeIcon, ShareIcon, XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { ResearchMarkdown } from '@/components/research-markdown';
 import { readDecisions } from '@/app/decisions';
 
@@ -35,7 +38,7 @@ export function WorkspaceInfo() {
       <dialog
         ref={dialog}
         aria-labelledby="workspace-info-title"
-        className="fixed inset-0 m-auto max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-3xl overflow-y-auto rounded-2xl border bg-background p-0 text-foreground backdrop:bg-black/25"
+        className="fixed inset-0 m-auto max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-3xl select-none overflow-y-auto rounded-2xl border bg-background p-0 text-foreground backdrop:bg-black/25"
         onClick={(event) => {
           if (event.target === event.currentTarget) dialog.current?.close();
         }}
@@ -50,46 +53,64 @@ export function WorkspaceInfo() {
         </div>
         <div className="p-6 text-sm leading-7 sm:p-8">
           {view === 'help' ? (
-            <div className="space-y-6">
-              <section>
-                <h3 className="font-semibold">What are you setting up?</h3>
-                <p className="mt-2 text-muted-foreground">
-                  An OAuth app identifies your integration to a provider. Your users connect their own accounts by
-                  granting that app permission; creating the app and approving each user's connection are separate
-                  steps.
-                </p>
-              </section>
-              <section>
-                <h3 className="font-semibold">Start with your use case</h3>
-                <p className="mt-2 text-muted-foreground">
-                  Enter an app name or website and what your agent should do. Add who will connect if you know. Research
-                  starts when you submit; you can clarify details in chat.
-                </p>
-              </section>
-              <section>
-                <h3 className="font-semibold">Read, refine, and share</h3>
-                <p className="mt-2 text-muted-foreground">
-                  The guide appears when ready. Follow-ups can produce new versions. Use the version selector to compare
-                  them, View Markdown for the raw document, or Share to copy a link. A guide bar in chat opens that
-                  version and copies its link.
-                </p>
-              </section>
-              <section>
-                <h3 className="font-semibold">Understand the evidence</h3>
-                <p className="mt-2 text-muted-foreground">
-                  Citations open supporting pages. Estimates and unknowns stay labelled. A partial guide has unresolved
-                  questions; the agent checks official documentation, then external accounts within its research budget.
-                  Complete means the guidance is actionable, not that provider approval is guaranteed.
-                </p>
-              </section>
-              <section>
-                <h3 className="font-semibold">Where you take over</h3>
-                <p className="mt-2 text-muted-foreground">
-                  The agent researches public documentation. You handle login, credentials, app registration, payment,
-                  and approval submissions. Documentation research is not a tested setup attempt.
-                </p>
-              </section>
-            </div>
+            <ol className="flex list-decimal flex-col gap-5 pl-5">
+              <li>
+                <span className="font-semibold">Start research.</span> Enter an app name or website, describe what you
+                want to build, and optionally choose who will connect. Select <strong>Research</strong>.
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none mt-3 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3"
+                >
+                  <Input tabIndex={-1} readOnly value="Slack" className="w-28 bg-background" />
+                  <Input tabIndex={-1} readOnly value="Send channel updates" className="w-44 bg-background" />
+                  <Select value="My team" items={[{ value: 'My team', label: 'My team' }]}>
+                    <SelectTrigger tabIndex={-1}>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </Select>
+                  <Button type="button" tabIndex={-1} size="sm">
+                    Research <ArrowUpRightIcon data-icon="inline-end" />
+                  </Button>
+                </div>
+              </li>
+              <li>
+                <span className="font-semibold">Read your guide.</span> The guide appears beside the chat when research
+                finishes. On smaller screens, open the <strong>Guide</strong> tab. Select a citation to view its source.
+              </li>
+              <li>
+                <span className="font-semibold">Ask follow-up questions.</span> Add context or ask a question in chat to
+                refine the guide. Use the version selector to view an earlier version.
+              </li>
+              <li>
+                <span className="font-semibold">Share or copy.</span> Select <strong>Share</strong> to copy a link to
+                the selected guide. Select <strong>View Markdown</strong> to see and copy its text. Selecting a guide in
+                chat opens that version and copies its link.
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none mt-3 flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 shadow-sm"
+                >
+                  <span className="px-1 font-medium">Guide</span>
+                  <Select value="version-1" items={[{ value: 'version-1', label: 'Version 1 · Latest' }]}>
+                    <SelectTrigger tabIndex={-1} size="sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                  </Select>
+                  <Badge variant="outline">Complete</Badge>
+                  <Button type="button" tabIndex={-1} variant="ghost" size="sm">
+                    <ShareIcon data-icon="inline-start" />
+                    Share
+                  </Button>
+                  <Button type="button" tabIndex={-1} variant="ghost" size="sm">
+                    <CodeIcon data-icon="inline-start" />
+                    View Markdown
+                  </Button>
+                </div>
+              </li>
+              <li>
+                <span className="font-semibold">Find guides.</span> Use <strong>Guides</strong> to reopen research from
+                this tab, or <strong>Library</strong> to browse ready-to-read examples.
+              </li>
+            </ol>
           ) : decisions !== undefined ? (
             <ResearchMarkdown text={decisions.replace(/^# Agent decisions\s*/, '')} />
           ) : (

@@ -1,6 +1,6 @@
 # Agent decisions
 
-This log records how the agent evolved. Later decisions supersede earlier choices where they differ.
+> This log records how the agent evolved, and shows the decisions taken initially and updated during the development of this POC. `Case` and `Update decision` can be seen throughout for better understanding and reference to what I faced and chose to implement during development. 
 
 ## Research
 

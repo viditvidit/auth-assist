@@ -60,7 +60,8 @@ export function HomeExperience({
           </h1>
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="sm"
+            className="rounded-full"
             title="New guide"
             aria-label="New guide"
             onClick={() => {
@@ -69,13 +70,14 @@ export function HomeExperience({
             }}
           >
             <PlusIcon />
+            <span>New guide</span>
           </Button>
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <WorkspaceInfo />
-          <Link href="/guides" className="mr-2 text-sm underline underline-offset-4">
+          <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/guides" />}>
             Library
-          </Link>
+          </Button>
           <label htmlFor="guide-history" className="text-xs text-muted-foreground">
             Guides
           </label>
@@ -109,10 +111,10 @@ export function HomeExperience({
           </Select>
         </div>
       </header>
-      {ready && (
+      {ready && !current && (
         <SetupForm
-          key={current ? `setup-${current.id}` : `setup-new-${newKey}`}
-          initial={current?.scenario ?? (newKey === 0 ? initialScenario : undefined)}
+          key={`setup-new-${newKey}`}
+          initial={newKey === 0 ? initialScenario : undefined}
           disabled={running}
           onSubmit={(scenario) => {
             const session = createSession(scenario);
@@ -155,7 +157,7 @@ export function HomeExperience({
               )}
             </div>
           </div>
-          <div className="hidden min-h-0 border-l lg:flex">
+          <div className="hidden min-h-0 border lg:flex">
             <GuidePreview />
           </div>
         </main>

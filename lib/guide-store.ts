@@ -17,7 +17,6 @@ function database() {
 
 export async function saveGuide(input: unknown, isExample = false) {
   const snapshot = guideSnapshotSchema.parse(input);
-  if (isExample && snapshot.status !== 'complete') throw new Error('Only complete guides can be library examples.');
   const fingerprint = guideFingerprint(snapshot);
   const title =
     `${snapshot.guide.scenario.app} — ${snapshot.guide.scenario.useCase || snapshot.guide.scenario.audience}`.slice(
@@ -48,10 +47,11 @@ export async function getGuide(id: string) {
 
 export async function listExampleGuides(): Promise<GuideListing[]> {
   const rows =
-    await database()`select id, title, created_at from oauth_guides.guides where is_example = true and content->>'status' = 'complete' order by title limit 100`;
+    await database()`select id, title, created_at, content->>'status' as status from oauth_guides.guides where is_example = true order by title limit 100`;
   return rows.map((row) => ({
     id: String(row.id),
     title: String(row.title),
     created_at: new Date(row.created_at).toISOString(),
+    status: row.status === 'complete' ? 'complete' : 'partial',
   }));
 }

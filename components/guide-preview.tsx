@@ -25,47 +25,6 @@ export function GuidePreview({
   const [raw, setRaw] = useState(false);
   return (
     <section aria-label="Guide preview" className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
-      <div className="mx-4 mt-4 flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-lg border bg-background p-2 shadow-lg">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 className="text-sm font-medium">Guide</h2>
-          {versions.length > 0 && (
-            <Select
-              value={selectedVersionId}
-              onValueChange={(value) => {
-                if (value) onSelectVersion?.(value);
-              }}
-              items={versions.map((version, index) => ({
-                value: version.id,
-                label: `Version ${index + 1}${index === versions.length - 1 ? ' · Latest' : ''}`,
-              }))}
-            >
-              <SelectTrigger size="sm" aria-label="Guide version">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {versions.map((version, index) => (
-                    <SelectItem key={version.id} value={version.id}>
-                      Version {index + 1}
-                      {index === versions.length - 1 ? ' · Latest' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          )}
-          {result && <Badge variant="outline">{result.status === 'complete' ? 'Complete' : 'Partial'}</Badge>}
-        </div>
-        {result && (
-          <div className="flex flex-wrap items-center gap-2">
-            <ShareGuide key={selectedVersionId} result={result} />
-            <Button variant="ghost" size="sm" onClick={() => setRaw(!raw)} aria-pressed={raw}>
-              <CodeIcon data-icon="inline-start" />
-              {raw ? 'View guide' : 'View Markdown'}
-            </Button>
-          </div>
-        )}
-      </div>
       {result ? (
         <div className="min-h-0 flex-1 overflow-y-auto">
           {result.status === 'partial' && (
@@ -111,6 +70,47 @@ export function GuidePreview({
           </EmptyHeader>
         </Empty>
       )}
+      <div className="mx-4 mb-4 mt-2 flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-lg border bg-background p-2 shadow-lg">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h2 className="text-sm font-medium">Guide</h2>
+          {versions.length > 0 && (
+            <Select
+              value={selectedVersionId}
+              onValueChange={(value) => {
+                if (value) onSelectVersion?.(value);
+              }}
+              items={versions.map((version, index) => ({
+                value: version.id,
+                label: `Version ${index + 1}${index === versions.length - 1 ? ' · Latest' : ''}`,
+              }))}
+            >
+              <SelectTrigger size="sm" aria-label="Guide version">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {versions.map((version, index) => (
+                    <SelectItem key={version.id} value={version.id}>
+                      Version {index + 1}
+                      {index === versions.length - 1 ? ' · Latest' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          )}
+          {result && <Badge variant="outline">{result.status === 'complete' ? 'Complete' : 'Partial'}</Badge>}
+        </div>
+        {result && (
+          <div className="flex flex-wrap items-center gap-2">
+            <ShareGuide key={selectedVersionId} result={result} />
+            <Button variant="ghost" size="sm" onClick={() => setRaw(!raw)} aria-pressed={raw}>
+              <CodeIcon data-icon="inline-start" />
+              {raw ? 'View guide' : 'View Markdown'}
+            </Button>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
